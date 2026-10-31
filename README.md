@@ -2,6 +2,8 @@
 
 Generador de cajas organizadoras para impresión 3D que funciona en el navegador. Pones las medidas, repartes los compartimentos, eliges la tapa y descargas los STL listos para el laminador. Todo se imprime sin soportes.
 
+**Úsalo aquí: <https://elemilio.github.io/stlboxes/>**
+
 Es un único `index.html`, sin compilación ni servidor: ábrelo en el navegador y listo.
 
 ## Qué puedes hacer

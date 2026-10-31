@@ -4,6 +4,7 @@
 
 Generador de cajas organizadoras para impresión 3D. Un único `index.html` sin build: HTML + CSS + JS, three@r128 y earcut@2.2.4 desde CDN.
 Se publicó como artifact de claude.ai con la capacidad `downloads` (el visor solo deja guardar ciertas extensiones, por eso la descarga es un .zip con los STL).
+También está publicado en GitHub Pages (<https://elemilio.github.io/stlboxes/>, rama `main`, raíz): cada push a `main` lo actualiza en uno o dos minutos.
 Si se abre como archivo suelto, la descarga es directa de cada .stl.
 
 ## Estructura
