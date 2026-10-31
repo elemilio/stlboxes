@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cajas a medida</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -54,6 +55,18 @@ h2 { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.09em; te
 .seg button { font: 500 0.88rem var(--sans); color: var(--ink); background: transparent; border: 0; padding: 8px 6px; cursor: pointer; border-left: 1px solid var(--line); }
 .seg button:first-child { border-left: 0; }
 .seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+.seg.cards button { display: grid; justify-items: center; gap: 2px; padding: 8px 4px 7px; }
+.seg.cards svg { width: 40px; height: 25px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.f .in.bad { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+.controls { counter-reset: step; }
+.controls h2::before { counter-increment: step; content: counter(step); display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; margin-right: 8px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 0.68rem; letter-spacing: 0; vertical-align: 1px; }
+details { border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; background: color-mix(in srgb, var(--field) 50%, transparent); }
+details[open] { padding-bottom: 10px; display: grid; gap: 8px; }
+summary { cursor: pointer; padding: 8px 0; font-size: 0.85rem; font-weight: 500; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 6px; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: ""; width: 6px; height: 6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform 0.15s; margin-right: 4px; }
+details[open] > summary::before { transform: rotate(45deg); }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .seg button:disabled { color: var(--muted); opacity: 0.5; cursor: not-allowed; }
 button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -76,7 +89,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .nogl { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); }
 .bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 18px; align-items: center; }
 .readout { display: grid; gap: 2px; font: 400 0.82rem var(--mono); color: var(--ink); min-width: 0; }
-.readout span { color: var(--muted); }
+.readout div { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); gap: 10px; }
+.readout span { color: var(--muted); font-family: var(--sans); }
 .btn { font: 700 0.98rem var(--sans); background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 12px 20px; cursor: pointer; white-space: nowrap; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn.alt { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
@@ -85,6 +99,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .msgs li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
 .msgs li.warn { color: var(--warn); } .msgs li.warn::before { background: var(--warn); }
 .msgs li.err { color: var(--bad); font-weight: 500; } .msgs li.err::before { background: var(--bad); }
+.msgs li.ok { color: var(--muted); }
 .msgs li.ok::before { background: var(--accent); }
 .status { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0; }
 @media (max-width: 860px) {
@@ -93,6 +108,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   .stage { height: 52vh; min-height: 300px; }
   .bar { grid-template-columns: minmax(0, 1fr); }
   .btn { width: 100%; }
+  /* El botón de descarga queda fijo abajo: en móvil los controles van debajo de la vista */
+  body { padding-bottom: 88px; }
+  #dl { position: fixed; z-index: 5; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(12px, env(safe-area-inset-bottom, 0px)); width: auto; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
@@ -105,74 +123,95 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 
   <div class="controls">
     <section>
-      <h2>Punto de partida</h2>
+      <h2>Empieza por un modelo</h2>
       <div class="chips" id="presets"></div>
+      <p class="hint">O ajusta tú las medidas. Todo se guarda en este navegador.</p>
     </section>
 
     <section>
-      <h2>Medidas</h2>
+      <h2>Tamaño</h2>
       <div class="seg" role="group" aria-label="Qué medidas das">
-        <button type="button" data-seg="mode" data-v="outer" aria-pressed="true">Exteriores</button>
-        <button type="button" data-seg="mode" data-v="inner" aria-pressed="false">Interiores</button>
+        <button type="button" data-seg="mode" data-v="outer" aria-pressed="true">Medidas por fuera</button>
+        <button type="button" data-seg="mode" data-v="inner" aria-pressed="false">Espacio por dentro</button>
       </div>
       <div class="row">
-        <label class="f">Largo (X)<span class="in"><input id="W" data-k="W" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span></label>
-        <label class="f">Fondo (Y)<span class="in"><input id="D" data-k="D" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span></label>
-        <label class="f"><span id="Hlabel">Alto (Z)</span><span class="in"><input id="H" data-k="H" type="number" inputmode="decimal" step="1" min="5"><i>mm</i></span></label>
+        <label class="f">Largo<span class="in"><input id="W" data-k="W" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span></label>
+        <label class="f">Fondo<span class="in"><input id="D" data-k="D" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span></label>
+        <label class="f"><span id="Hlabel">Alto</span><span class="in"><input id="H" data-k="H" type="number" inputmode="decimal" step="1" min="5"><i>mm</i></span></label>
       </div>
+      <details>
+        <summary>Paredes y esquinas</summary>
+        <div class="row">
+          <label class="f">Grosor pared<span class="in"><input id="wall" data-k="wall" type="number" inputmode="decimal" step="0.2" min="0.4"><i>mm</i></span></label>
+          <label class="f">Grosor suelo<span class="in"><input id="floor" data-k="floor" type="number" inputmode="decimal" step="0.2" min="0.4"><i>mm</i></span></label>
+          <label class="f">Radio esquinas<span class="in"><input id="corner" data-k="corner" type="number" inputmode="decimal" step="1" min="0"><i>mm</i></span></label>
+        </div>
+        <p class="hint">Con boquilla de 0,4 mm, una pared de 1,2 o 1,6 mm queda limpia. Radio 0 = esquinas vivas.</p>
+      </details>
     </section>
 
     <section>
       <h2>Compartimentos</h2>
-      <div class="row">
+      <div class="row two">
         <label class="f">Columnas<span class="in"><input id="cols" data-k="cols" type="number" inputmode="numeric" step="1" min="1" max="12"></span></label>
         <label class="f">Filas<span class="in"><input id="rows" data-k="rows" type="number" inputmode="numeric" step="1" min="1" max="12"></span></label>
-        <label class="f">Separador<span class="in"><input id="divT" data-k="divT" type="number" inputmode="decimal" step="0.2" min="0.4"><i>mm</i></span></label>
       </div>
-      <div class="row two">
-        <label class="f">Anchos relativos (vacío = iguales)<span class="in"><input id="colFr" data-k="colFr" type="text" placeholder="1,2,1"></span></label>
-        <label class="f">Fondos relativos<span class="in"><input id="rowFr" data-k="rowFr" type="text" placeholder="2,1"></span></label>
-      </div>
+      <p class="hint" id="cellHint"></p>
+      <details>
+        <summary>Huecos de distinto tamaño y separadores</summary>
+        <div class="row">
+          <label class="f">Anchos<span class="in"><input id="colFr" data-k="colFr" type="text" placeholder="1,2,1"></span></label>
+          <label class="f">Fondos<span class="in"><input id="rowFr" data-k="rowFr" type="text" placeholder="2,1"></span></label>
+          <label class="f">Separador<span class="in"><input id="divT" data-k="divT" type="number" inputmode="decimal" step="0.2" min="0.4"><i>mm</i></span></label>
+        </div>
+        <p class="hint">Anchos y fondos son proporciones, una por columna o fila: «1,2,1» hace la del centro el doble de ancha. Vacío = todas iguales.</p>
+      </details>
     </section>
 
-    <section>
-      <h2>Paredes</h2>
-      <div class="row">
-        <label class="f">Pared<span class="in"><input id="wall" data-k="wall" type="number" inputmode="decimal" step="0.2" min="0.4"><i>mm</i></span></label>
-        <label class="f">Suelo<span class="in"><input id="floor" data-k="floor" type="number" inputmode="decimal" step="0.2" min="0.4"><i>mm</i></span></label>
-        <label class="f">Esquinas<span class="in"><input id="corner" data-k="corner" type="number" inputmode="decimal" step="1" min="0"><i>mm</i></span></label>
-      </div>
-    </section>
-
-    <section>
-      <h2>Tapa</h2>
-      <div class="seg" role="group" aria-label="Tipo de tapa">
-        <button type="button" data-seg="lid" data-v="skirt" aria-pressed="true">Encajada</button>
-        <button type="button" data-seg="lid" data-v="hinge" aria-pressed="false">Con bisagra</button>
-        <button type="button" data-seg="lid" data-v="none" aria-pressed="false">Sin tapa</button>
-      </div>
-      <div class="row" id="lidFields">
-        <label class="f" data-for="skirt">Holgura<span class="in"><input id="tol" data-k="tol" type="number" inputmode="decimal" step="0.05" min="0"><i>mm</i></span></label>
-        <label class="f" data-for="skirt hinge">Plato<span class="in"><input id="plate" data-k="plate" type="number" inputmode="decimal" step="0.2" min="0.6"><i>mm</i></span></label>
-        <label class="f" data-for="skirt">Borde que encaja<span class="in"><input id="skirt" data-k="skirt" type="number" inputmode="decimal" step="1" min="2"><i>mm</i></span></label>
-        <label class="f" data-for="hinge">Pasador<span class="in"><select id="pin" data-k="pin"><option value="1.75">Ø 1,75 (filamento)</option><option value="2">Ø 2 (varilla)</option><option value="3">Ø 3 (tornillo M3)</option></select></span></label>
-        <label class="f" data-for="hinge">Nudillos<span class="in"><select id="knuckles" data-k="knuckles"><option value="0">Auto</option><option value="3">3</option><option value="5">5</option><option value="7">7</option></select></span></label>
+    <section data-part="lid">
+      <h2>Tapa y cierre</h2>
+      <div class="seg cards" role="group" aria-label="Tipo de tapa">
+        <button type="button" data-seg="lid" data-v="skirt" aria-pressed="true"><svg viewBox="0 0 48 30" aria-hidden="true"><path d="M8 12h32v15H8z"/><path d="M5 4h38v9H5z"/></svg>Encajada</button>
+        <button type="button" data-seg="lid" data-v="hinge" aria-pressed="false"><svg viewBox="0 0 48 30" aria-hidden="true"><path d="M6 14h34v13H6z"/><path d="M40 13 13 2l-2 4 27 10"/><circle cx="40" cy="13" r="2"/></svg>Con bisagra</button>
+        <button type="button" data-seg="lid" data-v="none" aria-pressed="false"><svg viewBox="0 0 48 30" aria-hidden="true"><path d="M6 12v15h36V12"/></svg>Sin tapa</button>
       </div>
       <p class="hint" id="lidHint"></p>
-      <div class="row" id="latchRow">
-        <label class="f">Cierre<span class="in"><select id="latch" data-k="latch" data-str><option value="none">Ninguno</option><option value="snap">Clic</option><option value="magnet">Imanes</option><option value="clip">Pestillo</option></select></span></label>
-        <label class="f" data-latch="snap">Relieve<span class="in"><input id="snapB" data-k="snapB" type="number" inputmode="decimal" step="0.05" min="0.1" max="1"><i>mm</i></span></label>
-        <label class="f" data-latch="magnet">Ø imán<span class="in"><input id="magD" data-k="magD" type="number" inputmode="decimal" step="1" min="2" max="20"><i>mm</i></span></label>
-        <label class="f" data-latch="magnet">Alto imán<span class="in"><input id="magH" data-k="magH" type="number" inputmode="decimal" step="0.5" min="0.5" max="10"><i>mm</i></span></label>
+      <div class="row" id="lidFields">
+        <label class="f" data-for="hinge">Eje de la bisagra<span class="in"><select id="pin" data-k="pin"><option value="1.75">Filamento 1,75</option><option value="2">Varilla Ø 2</option><option value="3">Tornillo M3</option></select></span></label>
       </div>
-      <p class="hint" id="latchHint"></p>
+      <div id="latchRow">
+        <div class="f">Cierre
+          <div class="seg" role="group" aria-label="Cierre">
+            <button type="button" data-seg="latch" data-v="none" aria-pressed="true">Ninguno</button>
+            <button type="button" data-seg="latch" data-v="snap" aria-pressed="false">Clic</button>
+            <button type="button" data-seg="latch" data-v="magnet" aria-pressed="false">Imanes</button>
+            <button type="button" data-seg="latch" data-v="clip" aria-pressed="false">Pestillo</button>
+          </div>
+        </div>
+        <div class="row" id="latchFields">
+          <label class="f" data-latch="snap">Fuerza del clic<span class="in"><input id="snapB" data-k="snapB" type="number" inputmode="decimal" step="0.05" min="0.1" max="1"><i>mm</i></span></label>
+          <label class="f" data-latch="magnet">Ø del imán<span class="in"><input id="magD" data-k="magD" type="number" inputmode="decimal" step="1" min="2" max="20"><i>mm</i></span></label>
+          <label class="f" data-latch="magnet">Alto del imán<span class="in"><input id="magH" data-k="magH" type="number" inputmode="decimal" step="0.5" min="0.5" max="10"><i>mm</i></span></label>
+        </div>
+        <p class="hint" id="latchHint"></p>
+      </div>
+      <details id="lidMore">
+        <summary>Ajustes de la tapa</summary>
+        <div class="row">
+          <label class="f" data-for="skirt">Holgura<span class="in"><input id="tol" data-k="tol" type="number" inputmode="decimal" step="0.05" min="0"><i>mm</i></span></label>
+          <label class="f" data-for="skirt hinge">Grosor tapa<span class="in"><input id="plate" data-k="plate" type="number" inputmode="decimal" step="0.2" min="0.6"><i>mm</i></span></label>
+          <label class="f" data-for="skirt">Alto del borde<span class="in"><input id="skirt" data-k="skirt" type="number" inputmode="decimal" step="1" min="2"><i>mm</i></span></label>
+          <label class="f" data-for="hinge">Nudillos<span class="in"><select id="knuckles" data-k="knuckles"><option value="0">Auto</option><option value="3">3</option><option value="5">5</option><option value="7">7</option></select></span></label>
+        </div>
+        <p class="hint" id="lidMoreHint"></p>
+      </details>
     </section>
 
-    <section id="labelSec">
+    <section id="labelSec" data-part="label">
       <h2>Texto</h2>
-      <label class="f">Texto o emojis (Intro para otra línea)<span class="in"><textarea id="text" data-k="text" data-str rows="2" placeholder="TORNILLOS"></textarea></span></label>
+      <label class="f">Texto o emojis (Intro para otra línea)<span class="in"><textarea id="text" data-k="text" data-str rows="2" placeholder="Escribe, por ejemplo, TORNILLOS"></textarea></span></label>
       <div class="chips" id="emojis" aria-label="Añadir emoji"></div>
-      <div class="f">Dónde
+      <div class="f">Dónde va (puedes elegir varios)
         <div class="seg" role="group" aria-label="Dónde va el texto" id="places">
           <button type="button" data-place="lid">Tapa</button>
           <button type="button" data-place="front">Delante</button>
@@ -186,7 +225,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
         <button type="button" data-seg="labelMode" data-v="engrave" aria-pressed="false">Grabado</button>
       </div>
       <div class="row">
-        <label class="f">Fuente<span class="in"><select id="font" data-k="font" data-str><option value="sans">Grotesca</option><option value="round">Gruesa</option><option value="serif">Con remates</option><option value="mono">Máquina</option><option value="script">Manuscrita</option></select></span></label>
+        <label class="f">Letra<span class="in"><select id="font" data-k="font" data-str><option value="sans">Grotesca</option><option value="round">Gruesa</option><option value="serif">Con remates</option><option value="mono">Máquina</option><option value="script">Manuscrita</option></select></span></label>
         <label class="f">Tamaño<span class="in"><input id="labelSize" data-k="labelSize" type="number" inputmode="decimal" step="1" min="3" max="80"><i>mm</i></span></label>
         <label class="f"><span id="depthLabel">Altura</span><span class="in"><input id="labelDepth" data-k="labelDepth" type="number" inputmode="decimal" step="0.2" min="0.2" max="3"><i>mm</i></span></label>
       </div>
@@ -196,7 +235,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
     <section>
       <h2>Tu impresora</h2>
       <div class="row">
-        <label class="f">Cama<span class="in"><select id="bed" data-k="bed"><option value="180">180 mm</option><option value="220">220 mm</option><option value="256">256 mm</option><option value="300">300 mm</option><option value="350">350 mm</option></select></span></label>
+        <label class="f">Tamaño de la cama<span class="in"><select id="bed" data-k="bed"><option value="180">180 mm</option><option value="220">220 mm</option><option value="256">256 mm</option><option value="300">300 mm</option><option value="350">350 mm</option></select></span></label>
         <label class="f">Boquilla<span class="in"><select id="nozzle" data-k="nozzle"><option value="0.4">0,4 mm</option><option value="0.6">0,6 mm</option><option value="0.8">0,8 mm</option></select></span></label>
       </div>
       <div class="f">Color de la vista previa
@@ -891,22 +930,28 @@ function makeZip(files) {
     for (const el of $$('[data-k]')) { const k = el.dataset.k; if (k in S) el.value = S[k]; }
     for (const b of $$('[data-seg]')) b.setAttribute('aria-pressed', String(segValue(b.dataset.seg) === b.dataset.v));
     $$('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === S.color)));
-    $('#Hlabel').textContent = S.mode === 'inner' ? 'Profundidad (Z)' : 'Alto (Z)';
+    $('#Hlabel').textContent = S.mode === 'inner' ? 'Profundidad' : 'Alto';
     const lt = S.lidType;
-    $('#lidFields').hidden = lt === 'none'; $('#lidHint').hidden = lt === 'none';
-    for (const l of $$('#lidFields [data-for]')) l.hidden = !l.dataset.for.split(' ').includes(lt);
-    $('#lidHint').textContent = lt === 'hinge'
-      ? 'Caja y tapa se imprimen por separado, con nudillos que encajan entre sí. Pasa un trozo de filamento por el agujero y la tapa gira. La lengüeta delantera sirve para abrirla.'
-      : 'La tapa abraza la caja por fuera, como una caja de zapatos. Con 0,25 mm de holgura entra a presión en la mayoría de impresoras.';
+    $('#lidFields').hidden = lt !== 'hinge'; $('#lidMore').hidden = lt === 'none';
+    for (const l of $$('.controls [data-for]')) l.hidden = !l.dataset.for.split(' ').includes(lt);
+    $('#lidHint').textContent = {
+      hinge: 'Caja y tapa se imprimen por separado y se unen pasando un eje por los nudillos. La pestaña de delante sirve para abrirla.',
+      skirt: 'La tapa abraza la caja por fuera, como una caja de zapatos, y entra a presión.',
+      none: 'Solo la caja, como una bandeja.',
+    }[lt];
+    $('#lidMoreHint').textContent = lt === 'hinge'
+      ? 'Más grosor hace la tapa más rígida. Con «Auto» los nudillos se reparten según el ancho.'
+      : 'Holgura: el juego entre caja y tapa; 0,25 mm entra a presión en la mayoría de impresoras. Sube a 0,3–0,4 si queda dura.';
     const fits = { none: true, snap: lt === 'skirt', magnet: lt !== 'none', clip: lt === 'hinge' };
-    for (const o of $('#latch').options) { o.hidden = o.disabled = !fits[o.value]; }
+    for (const b of $$('[data-seg=latch]')) b.hidden = !fits[b.dataset.v];
     if (!fits[S.latch]) S.latch = 'none';
-    $('#latch').value = S.latch;
+    for (const b of $$('[data-seg=latch]')) b.setAttribute('aria-pressed', String(b.dataset.v === S.latch));
     $('#latchRow').hidden = lt === 'none'; $('#latchHint').hidden = lt === 'none' || S.latch === 'none';
+    $('#latchFields').hidden = S.latch === 'none' || S.latch === 'clip';
     for (const l of $$('#latchRow [data-latch]')) l.hidden = l.dataset.latch !== S.latch;
     $('#latchHint').textContent = {
       none: '',
-      snap: 'Un cordón alrededor de la caja y otro dentro del borde de la tapa: al cerrarla hace clic. Más relieve, más duro.',
+      snap: 'Un cordón alrededor de la caja y otro dentro del borde de la tapa: al cerrarla hace clic. Más fuerza, más duro de abrir.',
       magnet: 'Columnas en las esquinas de la caja con huecos para imanes de disco, y los huecos gemelos en la tapa' + (lt === 'hinge' ? ' (solo delante, lejos de la bisagra).' : '.'),
       clip: 'Una lengüeta flexible delante de la caja engancha la tapa al cerrarla. Sustituye a la pestaña de la tapa: para abrir, tira de la lengüeta.',
     }[S.latch];
@@ -929,7 +974,18 @@ function makeZip(files) {
     else if (el.tagName === 'SELECT') S[k] = parseFloat(el.value);
     else { const v = parseFloat(el.value); S[k] = isFinite(v) ? v : NaN; }
   }
-  for (const el of $$('[data-k]')) el.addEventListener('input', () => { readInput(el); if (el.id === 'latch') writeInputs(); schedule(); });
+  for (const el of $$('[data-k]')) el.addEventListener('input', () => { readInput(el); schedule(); });
+  // La vista sigue a lo que editas: si cambias algo de la tapa o del texto y no se ve, enseña las dos piezas.
+  function reveal(sec) {
+    const part = sec.dataset.part === 'lid' ? 'lid' : S.labelOn && S.labelOn.lid && S.lidType !== 'none' ? 'lid' : 'box';
+    const vis = { box: ['box', 'both'], lid: ['lid', 'both'] }[part];
+    if (vis.includes(S.show) || (part === 'lid' && S.lidType === 'none')) return;
+    S.show = S.lidType === 'none' ? 'box' : 'both'; refit = true; writeInputs();
+  }
+  for (const ev of ['input', 'click']) $('.controls').addEventListener(ev, e => {
+    const sec = e.target.closest('[data-part]');
+    if (sec && (ev === 'input' || e.target.closest('button'))) reveal(sec);
+  });
   for (const b of $$('[data-seg]')) b.addEventListener('click', () => {
     const k = b.dataset.seg, v = b.dataset.v;
     if (k === 'lid') S.lidType = v; else S[k] = v;
@@ -967,12 +1023,17 @@ function makeZip(files) {
     p.label = Object.keys(p.labelOn).some(k => p.labelOn[k] && (k !== 'lid' || p.lidType !== 'none')) ? labelData() : null;
     const nums = ['W', 'D', 'H', 'cols', 'rows', 'divT', 'wall', 'floor', 'corner'].concat(p.lidType === 'skirt' ? ['tol', 'plate', 'skirt'] : p.lidType === 'hinge' ? ['plate', 'pin', 'knuckles'] : [],
       lt === 'snap' ? ['snapB'] : lt === 'magnet' ? ['magD', 'magH'] : [], p.label ? ['labelSize', 'labelDepth'] : []);
-    for (const k of nums) if (!isFinite(p[k])) return null;
-    if (p.label && (p.labelSize < 3 || p.labelSize > 80 || p.labelDepth < 0.2 || p.labelDepth > 3)) return null;
-    if ((lt === 'snap' && (p.snapB < 0.1 || p.snapB > 1)) || (lt === 'magnet' && (p.magD < 2 || p.magD > 20 || p.magH < 0.5 || p.magH > 10))) return null;
-    if (p.W < 5 || p.D < 5 || p.H < 3 || p.cols < 1 || p.rows < 1 || p.cols > 12 || p.rows > 12) return null;
-    if (p.divT < 0.2 || p.wall < 0.2 || p.floor < 0.2 || p.corner < 0 || (p.lidType === 'skirt' && (p.tol < 0 || p.plate < 0.4 || p.skirt < 1)) || (p.lidType === 'hinge' && p.plate < 0.4)) return null;
-    return p;
+    bad = nums.filter(k => !(isFinite(p[k]) && p[k] >= RANGES[k][0] && p[k] <= RANGES[k][1]));
+    return bad.length ? null : p;
+  }
+  // Valores admitidos por campo; los que se salen se marcan en rojo.
+  const RANGES = { W: [5, 3000], D: [5, 3000], H: [3, 3000], cols: [1, 12], rows: [1, 12], divT: [0.2, 50], wall: [0.2, 50], floor: [0.2, 50], corner: [0, 1000],
+    tol: [0, 5], plate: [0.4, 50], skirt: [1, 500], pin: [1, 10], knuckles: [0, 7], snapB: [0.1, 1], magD: [2, 20], magH: [0.5, 10], labelSize: [3, 80], labelDepth: [0.2, 3] };
+  let bad = [];
+  function markBad() {
+    for (const el of $$('[data-k]')) el.closest('.in').classList.toggle('bad', bad.includes(el.dataset.k));
+    const names = bad.map(k => { const el = $('[data-k="' + k + '"]'), d = el.closest('details'); if (d) d.open = true; return '«' + el.closest('.f').firstChild.textContent.trim() + '»'; });
+    return names.length ? 'Revisa ' + names.join(', ').replace(/, ([^,]*)$/, ' y $1') + ': ' + (names.length > 1 ? 'están vacíos o tienen' : 'está vacío o tiene') + ' un valor imposible (marcado en rojo).' : '';
   }
   // Texto: se dibuja en un lienzo en blanco, se convierte en máscara y se traza (traceMask). Las partes casi negras de
   // los emojis cuentan como vacío, así un emoji sale como silueta con sus detalles huecos.
@@ -1010,7 +1071,8 @@ function makeZip(files) {
   function rebuild() {
     const p = params(), msgs = [];
     let ok = false;
-    if (!p) msgs.push(['err', 'Revisa los campos: hay un valor vacío o fuera de rango.']);
+    const badMsg = markBad();
+    if (!p) msgs.push(['err', badMsg]);
     else {
       const v = validate(p);
       v.errors.forEach(m => msgs.push(['err', m]));
@@ -1023,6 +1085,13 @@ function makeZip(files) {
     $('#msgs').innerHTML = ''; msgs.forEach(([c, m]) => { const li = document.createElement('li'); li.className = c; li.textContent = m; $('#msgs').appendChild(li); });
     $('#dl').disabled = !ok;
     if (ok) { readout(); updateMeshes(); persist(); } else { $('#readout').textContent = ''; }
+    $('#dl').textContent = ok && lidSoup ? 'Descargar caja y tapa' : 'Descargar caja';
+    if (ok) {
+      const L = info.L, n = L.xs.length * L.ys.length, w = L.xs.map(q => q[1] - q[0]), d = L.ys.map(q => q[1] - q[0]);
+      const same = Math.max(...w) - Math.min(...w) < 0.05 && Math.max(...d) - Math.min(...d) < 0.05;
+      $('#cellHint').textContent = n === 1 ? 'Un solo hueco de ' + fmt(w[0]) + ' × ' + fmt(d[0]) + ' mm.' :
+        n + ' huecos' + (same ? ' de ' + fmt(w[0]) + ' × ' + fmt(d[0]) + ' mm' : ' de distintos tamaños') + ', ' + fmt(L.IH) + ' mm de hondo.';
+    }
     $('#status').textContent = '';
   }
   function readout() {
@@ -1049,7 +1118,7 @@ function makeZip(files) {
     if (sl.length) rows.push([lab && lab.fit ? 'Laterales' : 'Texto', sl.map(s => fmt(s.w) + ' × ' + fmt(s.h) + ' mm ' + ({ front: 'delante', back: 'detrás', left: 'a la izquierda', right: 'a la derecha' })[s.side]).join(' · ') + ', ' + (sl[0].mode === 'emboss' ? 'en relieve' : 'grabado')]);
     rows.push(['Material', fmt(vol / 1000) + ' cm³ · unos ' + fmt(g, 0) + ' g de PLA al 100 %']);
     $('#readout').innerHTML = '';
-    for (const [k, v] of rows) { const d = document.createElement('div'); const s = document.createElement('span'); s.textContent = k + '  '; d.appendChild(s); d.appendChild(document.createTextNode(v)); $('#readout').appendChild(d); }
+    for (const [k, v] of rows) { const d = document.createElement('div'); const s = document.createElement('span'); s.textContent = k; d.appendChild(s); d.appendChild(document.createTextNode(v)); $('#readout').appendChild(d); }
   }
 
   // ---------- Vista 3D ----------
