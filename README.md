@@ -11,7 +11,7 @@ Es un único `index.html`, sin compilación ni servidor: ábrelo en el navegador
 - **Tapa**
   - *Encajada*: abraza la caja por fuera, como una caja de zapatos, con la holgura que elijas.
   - *Con bisagra*: nudillos alternos en caja y tapa; se monta pasando un trozo de filamento de 1,75 mm, una varilla de 2 mm o un tornillo M3.
-  - *Sin tapa*.
+  - Sin tapa: deja apagado el apartado.
 - **Cierres**
   - *Clic* (tapa encajada): un cordón en la caja y otro dentro del borde de la tapa.
   - *Imanes* (las dos tapas): columnas en las esquinas con huecos para imanes de disco y los huecos gemelos en la tapa.
@@ -19,6 +19,8 @@ Es un único `index.html`, sin compilación ni servidor: ábrelo en el navegador
 - **Texto y emojis** en la tapa y en cualquiera de los cuatro laterales (útil si apilas las cajas), en relieve o grabado. Los emojis salen como silueta y sus partes oscuras quedan huecas.
 - **Avisos de impresión**: pared con perímetros incompletos, holguras raras, piezas que no caben en tu cama, etc.
 - **Vista 3D** de la caja, la tapa o las dos juntas (con la bisagra abriéndose).
+- **Interfaz mínima**: compartimentos, tapa, texto e impresora se encienden con un interruptor; apagados no ocupan sitio.
+- **Castellano e inglés**, con un selector arriba a la derecha (la primera vez se elige según el idioma del navegador).
 - **Mis diseños**: guarda tus cajas con nombre en el navegador y vuelve a abrirlas para editarlas. Para llevarlas a otro dispositivo, copia el enlace (o el código, dentro del visor de claude.ai) o exporta el `.json`.
 
 La descarga es un STL por pieza (caja y tapa). Publicada como artifact de claude.ai, la descarga es un `.zip` con los dos STL y el `.json` del diseño, porque ese visor solo deja guardar ciertas extensiones.

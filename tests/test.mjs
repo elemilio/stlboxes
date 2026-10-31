@@ -113,14 +113,32 @@ ok(C.validate({...base,colFr:'1,2'}).warns.some(w=>/reparto/.test(w)),'aviso rep
  ok(C.validate(tcfg.textoGrande).warns.some(w=>/reducido/.test(w)),'texto enorme -> se reduce y avisa');
  ok(C.validate({...tcfg.textoEncajada,labelDepth:1.8}).errors.length>0,'grabado más hondo que el plato -> error');
  ok(C.labelGeom({...base,lidType:'none',label},C.layout(base))===null,'sin tapa no hay texto');
+ globalThis.labelCfgs={...tcfg,...scfg};
 }
 // zip
 const z=C.makeZip([{name:'a.stl',data:new Uint8Array([1,2,3,4,5])},{name:'b_tapa.stl',data:C.soupToStl(C.buildLid(base),'x')}]);
 fs.writeFileSync('out/t.zip',z); const u=execSync('unzip -t out/t.zip 2>&1').toString(); ok(/No errors detected/.test(u),'zip válido\n'+u);
+// mensajes en inglés: todo lo que sale en castellano tiene traducción y no quedan {huecos}
+{
+ const all={...cfgs,
+  frMal:{...base,cols:3,colFr:'1,2'}, paredFina:{...base,wall:0.6}, paredRara:{...base,wall:1.5}, sepFino:{...base,divT:0.5},
+  holgura:{...base,tol:0.05}, holgura2:{...base,tol:0.7}, bordeAlto:{...base,skirt:50},
+  bisagraBaja:{...base,lidType:'hinge',H:6}, bisagraEstrecha:{...base,lidType:'hinge',W:20,cols:1,rows:1}, platoFino:{...base,lidType:'hinge',plate:1},
+  clicSuave:{...base,latch:'snap',snapB:0.1,tol:0.1}, clicDuro:{...base,latch:'snap',snapB:0.6,tol:0.1}, clicBajo:{...base,latch:'snap',skirt:2},
+  imanBajo:{...base,latch:'magnet',H:4}, imanPlato:{...base,latch:'magnet',plate:1}, imanChico:{...base,latch:'magnet',cols:12,rows:12,W:100,D:100},
+  pestilloBajo:{...base,lidType:'hinge',latch:'clip',H:10}, cama:{...base,W:400}, vacio:{...base,wall:60},
+  ...globalThis.labelCfgs};
+ let n=0, miss=new Set();
+ for(const [k,c] of Object.entries(all)){
+  const es=C.validate({...c,lang:'es'}), en=C.validate({...c,lang:'en'});
+  for(const f of ['errors','warns','oks']) en[f].forEach((m,i)=>{ n++; if(m===es[f][i]||/[{}]|[áéíóúñ¿¡]/.test(m)) miss.add(k+': '+m); });
+ }
+ ok(miss.size===0,'mensajes en inglés traducidos ('+n+' revisados)'+(miss.size?'\n  '+[...miss].join('\n  '):''));
+}
 // diseños guardados
 {
- const defs={...base,latch:'none',snapB:0.3,magD:6,magH:2,text:'',font:'sans',labelSize:12,labelMode:'emboss',labelDepth:0.6,color:'#d3d0c6'};
- const S={...defs,W:123.5,lidType:'hinge',latch:'magnet',text:'TORNILLOS 🔩\nM3',font:'serif',labelOn:{lid:false,front:true},color:'#2f6fb0',show:'both',open:40};
+ const defs={...base,latch:'none',snapB:0.3,magD:6,magH:2,text:'',font:'sans',labelSize:12,labelMode:'emboss',labelDepth:0.6,color:'#d3d0c6',useCells:false,useText:false,usePrinter:false,useLid:false};
+ const S={...defs,W:123.5,lidType:'hinge',latch:'magnet',text:'TORNILLOS 🔩\nM3',font:'serif',labelOn:{lid:false,front:true},color:'#2f6fb0',useCells:true,useText:true,usePrinter:false,useLid:true,show:'both',open:40};
  const d=C.designOf(S), back=C.designApply(C.designParse(C.designCode(d)),defs);
  const same=Object.keys(back).every(k=>JSON.stringify(back[k])===JSON.stringify(S[k]));
  ok(same && !('show' in back) && !('open' in back),'diseño: código -> mismos parámetros (con emojis y saltos de línea)');
@@ -128,6 +146,10 @@ fs.writeFileSync('out/t.zip',z); const u=execSync('unzip -t out/t.zip 2>&1').toS
  ok(JSON.stringify(C.designApply(C.designParse(JSON.stringify(d,null,2)),defs))===JSON.stringify(back),'diseño: se lee desde el JSON exportado');
  const old=C.designApply({app:'cajas-a-medida',v:1,W:80,lidType:'tapa rara',cols:'3',color:'red',futuro:1},defs);
  ok(old.W===80&&old.lidType==='skirt'&&old.cols===defs.cols&&old.color==='#d3d0c6'&&old.text===''&&!('futuro' in old),'diseño: campos que faltan o inválidos -> valores por defecto');
+ const v0=C.designApply({app:'cajas-a-medida',v:1,cols:3,rows:1,text:' ',nozzle:0.6},defs), v1=C.designApply({app:'cajas-a-medida',v:1,cols:3,useCells:false,text:'A'},defs);
+ ok(v0.useCells&&!v0.useText&&v0.usePrinter&&!v1.useCells&&v1.useText,'diseño viejo: se activan los apartados que usaba');
+ const l0=C.designApply({app:'cajas-a-medida',v:1,lidType:'none'},defs), l1=C.designApply({app:'cajas-a-medida',v:1,lidType:'hinge'},defs);
+ ok(!l0.useLid&&l0.lidType==='skirt'&&l1.useLid&&l1.lidType==='hinge','diseño viejo: «sin tapa» pasa a tapa apagada');
  let bad=0; for(const x of [{v:1},null,'hola',{app:'cajas-a-medida'}]) try{C.designApply(x,defs)}catch(e){bad++}
  ok(bad===4,'diseño: lo que no es un diseño se rechaza');
  let badc=0; for(const x of ['no es código!','https://x.test/#d=@@']) try{C.designParse(x)}catch(e){badc++}

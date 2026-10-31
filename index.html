@@ -102,6 +102,19 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .msgs li.ok { color: var(--muted); }
 .msgs li.ok::before { background: var(--accent); }
 .status { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0; }
+.seg.lang { margin-left: auto; grid-auto-columns: auto; }
+.seg.lang button { padding: 5px 10px; font-size: 0.8rem; }
+/* Apartados opcionales: un interruptor en la cabecera; apagados solo se ve la cabecera. */
+.sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sechead label { cursor: pointer; }
+.opt.off > :not(.sechead) { display: none !important; }
+.opt.off h2 { opacity: 0.75; }
+.switch { appearance: none; -webkit-appearance: none; flex: none; width: 38px; height: 22px; margin: 0; border-radius: 99px; background: var(--line); position: relative; cursor: pointer; transition: background 0.15s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--field); box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); transition: transform 0.15s; }
+.switch:checked { background: var(--accent); }
+.switch:checked::after { transform: translateX(16px); }
+.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .switch, .switch::after { transition: none; } }
 .saves .count { color: var(--muted); font-weight: 400; }
 .saverow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
 .saverow .btn { padding: 8px 16px; width: auto; }
@@ -129,6 +142,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   <header>
     <h1>Cajas a medida</h1>
     <p>Pon las medidas, reparte los huecos y descarga el STL. Se imprime sin soportes.</p>
+    <div class="seg lang" role="group" aria-label="Idioma">
+      <button type="button" data-lang="es" lang="es">Español</button>
+      <button type="button" data-lang="en" lang="en">English</button>
+    </div>
   </header>
 
   <div class="controls">
@@ -160,8 +177,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
       </details>
     </section>
 
-    <section>
-      <h2>Compartimentos</h2>
+    <section class="opt" data-opt="useCells">
+      <div class="sechead"><h2><label for="useCells">Compartimentos</label></h2><input type="checkbox" class="switch" role="switch" id="useCells" data-use="useCells"></div>
       <div class="row two">
         <label class="f">Columnas<span class="in"><input id="cols" data-k="cols" type="number" inputmode="numeric" step="1" min="1" max="12"></span></label>
         <label class="f">Filas<span class="in"><input id="rows" data-k="rows" type="number" inputmode="numeric" step="1" min="1" max="12"></span></label>
@@ -178,12 +195,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
       </details>
     </section>
 
-    <section data-part="lid">
-      <h2>Tapa y cierre</h2>
+    <section class="opt" data-opt="useLid" data-part="lid">
+      <div class="sechead"><h2><label for="useLid">Tapa y cierre</label></h2><input type="checkbox" class="switch" role="switch" id="useLid" data-use="useLid"></div>
       <div class="seg cards" role="group" aria-label="Tipo de tapa">
         <button type="button" data-seg="lid" data-v="skirt" aria-pressed="true"><svg viewBox="0 0 48 30" aria-hidden="true"><path d="M8 12h32v15H8z"/><path d="M5 4h38v9H5z"/></svg>Encajada</button>
         <button type="button" data-seg="lid" data-v="hinge" aria-pressed="false"><svg viewBox="0 0 48 30" aria-hidden="true"><path d="M6 14h34v13H6z"/><path d="M40 13 13 2l-2 4 27 10"/><circle cx="40" cy="13" r="2"/></svg>Con bisagra</button>
-        <button type="button" data-seg="lid" data-v="none" aria-pressed="false"><svg viewBox="0 0 48 30" aria-hidden="true"><path d="M6 12v15h36V12"/></svg>Sin tapa</button>
       </div>
       <p class="hint" id="lidHint"></p>
       <div class="row" id="lidFields">
@@ -217,8 +233,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
       </details>
     </section>
 
-    <section id="labelSec" data-part="label">
-      <h2>Texto</h2>
+    <section class="opt" data-opt="useText" id="labelSec" data-part="label">
+      <div class="sechead"><h2><label for="useText">Texto</label></h2><input type="checkbox" class="switch" role="switch" id="useText" data-use="useText"></div>
       <label class="f">Texto o emojis (Intro para otra línea)<span class="in"><textarea id="text" data-k="text" data-str rows="2" placeholder="Escribe, por ejemplo, TORNILLOS"></textarea></span></label>
       <div class="chips" id="emojis" aria-label="Añadir emoji"></div>
       <div class="f">Dónde va (puedes elegir varios)
@@ -242,8 +258,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
       <p class="hint" id="labelHint"></p>
     </section>
 
-    <section>
-      <h2>Tu impresora</h2>
+    <section class="opt" data-opt="usePrinter">
+      <div class="sechead"><h2><label for="usePrinter">Tu impresora</label></h2><input type="checkbox" class="switch" role="switch" id="usePrinter" data-use="usePrinter"></div>
       <div class="row">
         <label class="f">Tamaño de la cama<span class="in"><select id="bed" data-k="bed"><option value="180">180 mm</option><option value="220">220 mm</option><option value="256">256 mm</option><option value="300">300 mm</option><option value="350">350 mm</option></select></span></label>
         <label class="f">Boquilla<span class="in"><select id="nozzle" data-k="nozzle"><option value="0.4">0,4 mm</option><option value="0.6">0,6 mm</option><option value="0.8">0,8 mm</option></select></span></label>
@@ -284,7 +300,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
         <button type="button" class="btn alt" id="saveBtn">Guardar</button>
       </div>
       <ul class="savelist" id="saveList"></ul>
-      <p class="hint">Se guardan en este navegador. Para abrirlos en otro dispositivo o pasárselos a alguien, copia el <span id="codeWord">enlace</span> o exporta el archivo. La descarga de los STL también lleva el archivo del diseño.</p>
+      <p class="hint" id="savesHint"></p>
       <div class="chips">
         <button type="button" class="chip" id="copyCode">Copiar enlace</button>
         <button type="button" class="chip" id="exportBtn">Exportar .json</button>
@@ -729,80 +745,134 @@ function addSideLabels(S, p, sides) {
   }
 }
 
+// Textos: el castellano hace de clave y EN guarda la traducción ({x} se sustituye). La parte DOM añade aquí los de la interfaz.
+const EN = {
+  'Las paredes y el suelo no dejan espacio dentro. Reduce el grosor o aumenta las medidas.': 'The walls and floor leave no room inside. Make them thinner or the box bigger.',
+  'Los huecos quedan demasiado pequeños (menos de 2 mm). Usa menos columnas o filas, o aumenta las medidas.': 'The compartments are too small (under 2 mm). Use fewer columns or rows, or make the box bigger.',
+  'El reparto relativo no coincide con el número de columnas o filas, así que se reparte a partes iguales.': 'The proportions don’t match the number of columns or rows, so they are split evenly.',
+  'La pared de {w} mm tiene menos de 2 perímetros con boquilla de {n} mm. Quedará frágil.': 'A {w} mm wall is less than 2 perimeters with a {n} mm nozzle. It will be fragile.',
+  'Con boquilla de {n} mm, una pared de {w} mm se imprime más limpia (perímetros completos).': 'With a {n} mm nozzle, a {w} mm wall prints cleaner (whole perimeters).',
+  'Los separadores de {d} mm son más finos que 2 perímetros de {n} mm.': 'The {d} mm dividers are thinner than 2 perimeters of {n} mm.',
+  'Con una holgura menor de 0,1 mm la tapa puede quedar encajada para siempre.': 'With less than 0.1 mm clearance the lid may get stuck for good.',
+  'Con más de 0,5 mm de holgura la tapa quedará suelta.': 'With more than 0.5 mm clearance the lid will be loose.',
+  'El borde de la tapa es más alto que la caja.': 'The lid rim is taller than the box.',
+  'Para la bisagra la caja necesita al menos 8 mm de alto.': 'A hinged box needs to be at least 8 mm tall.',
+  'La caja es demasiado estrecha para poner la bisagra. Necesita unos 25 mm de largo útil como mínimo.': 'The box is too narrow for the hinge. It needs at least about 25 mm of usable width.',
+  'Un plato de menos de 1,2 mm de grosor se puede alabear o romper al abrir la tapa.': 'A lid plate thinner than 1.2 mm may warp or break when opened.',
+  'El borde que encaja es demasiado bajo para el clic. Necesita al menos {m} mm.': 'The lid rim is too short for the snap. It needs at least {m} mm.',
+  'Con este relieve y esta holgura el clic apenas se notará. Sube el relieve o baja la holgura.': 'With this bead and clearance the snap will barely be felt. Raise the bead or lower the clearance.',
+  'El clic será muy duro y puede rajar el borde de la tapa. Baja el relieve.': 'The snap will be very stiff and may crack the lid rim. Lower the bead.',
+  'Para los imanes el plato de la tapa necesita al menos 1,2 mm.': 'For magnets the lid plate needs to be at least 1.2 mm.',
+  'La caja es demasiado baja para el hueco de los imanes.': 'The box is too short for the magnet pockets.',
+  'Los compartimentos de las esquinas son demasiado pequeños para la columna de los imanes. Usa imanes más pequeños o menos columnas o filas.': 'The corner compartments are too small for the magnet posts. Use smaller magnets or fewer columns or rows.',
+  'Para el pestillo la caja necesita al menos 12 mm de alto y unos 25 mm de largo.': 'For the latch the box needs to be at least 12 mm tall and about 25 mm wide.',
+  'La tapa es demasiado pequeña para poner texto.': 'The lid is too small for text.',
+  'Un grabado de {d} mm deja el plato demasiado fino. Con un plato de {p} mm, graba como mucho {m} mm.': 'A {d} mm engraving leaves the plate too thin. With a {p} mm plate, engrave {m} mm at most.',
+  'El texto no cabía en la tapa y se ha reducido a {s} mm.': 'The text didn’t fit on the lid and was shrunk to {s} mm.',
+  'Con letras de menos de 5 mm los trazos finos pueden no salir bien.': 'With letters under 5 mm, thin strokes may not print well.',
+  'El lateral {s} no tiene sitio para texto (la caja es baja o la tapa tapa casi toda la pared).': 'The {s} side has no room for text (the box is short or the lid covers most of the wall).',
+  'En el lateral {s} el texto no cabía y se ha reducido a {z} mm.': 'The text didn’t fit on the {s} side and was shrunk to {z} mm.',
+  'Una pared de {w} mm solo deja grabar {m} mm en los laterales. Usa texto en relieve o una pared más gruesa.': 'A {w} mm wall only allows {m} mm engraving on the sides. Use embossed text or a thicker wall.',
+  'En los laterales, con más de 1 mm de relieve la parte de abajo de las letras queda en voladizo y puede colgar.': 'On the sides, with more than 1 mm of relief the underside of the letters overhangs and may sag.',
+  'Una pieza mide {n} mm y tu cama es de {b} mm. No cabe tal cual.': 'One part is {n} mm and your bed is {b} mm. It won’t fit as is.',
+  'Se imprime sin soportes: la caja con la boca hacia arriba y la tapa con el plato sobre la cama.': 'Prints without supports: the box open side up and the lid with its plate on the bed.',
+  'Se imprime sin soportes: la caja con la boca hacia arriba.': 'Prints without supports: the box open side up.',
+  'Bisagra: imprime caja y tapa por separado y pasa un trozo de filamento de 1,75 mm por los nudillos.': 'Hinge: print box and lid separately and push a piece of 1.75 mm filament through the knuckles.',
+  'Bisagra: imprime caja y tapa por separado y pasa un trozo de varilla de {d} mm por los nudillos.': 'Hinge: print box and lid separately and push a {d} mm rod through the knuckles.',
+  'Clic: baja la tapa recta y aprieta hasta que haga clic. Si queda muy dura o muy floja, ajusta el relieve.': 'Snap: lower the lid straight and press until it clicks. If it’s too tight or too loose, adjust the bead.',
+  'Imanes: {n} de {sz} en la caja y otros {n} en la tapa. Pégalos con cianoacrilato y comprueba que se atraen antes de que seque.': 'Magnets: {n} of {sz} in the box and another {n} in the lid. Glue them with superglue and check they attract before it sets.',
+  'Los de la tapa sobresalen {m} mm y entran en el hueco de la caja.': 'The lid ones stick out {m} mm and go into the box pockets.',
+  'Pestillo: para abrir, tira de la lengüeta delantera hacia fuera y levanta la tapa.': 'Latch: to open, pull the front tab outwards and lift the lid.',
+  'Texto en relieve: para que salga de otro color, cambia de filamento al llegar a {m} mm de altura.': 'Embossed text: for a different color, change filament at {m} mm height.',
+  'Texto grabado en la cara de la tapa que va sobre la cama; al darle la vuelta se lee al derecho.': 'Text engraved on the lid face that sits on the bed; it reads correctly once flipped.',
+  'Texto grabado en la tapa.': 'Text engraved on the lid.',
+  'Texto en relieve en el lateral {s}.': 'Embossed text on the {s} side.',
+  'Texto en relieve en los laterales {s}.': 'Embossed text on the {s} sides.',
+  'Texto grabado en el lateral {s}.': 'Engraved text on the {s} side.',
+  'Texto grabado en los laterales {s}.': 'Engraved text on the {s} sides.',
+  'delantero': 'front', 'trasero': 'back', 'derecho': 'right', 'izquierdo': 'left', ' y ': ' and ',
+  'No es un diseño de Cajas a medida.': 'This is not a Custom Boxes design.',
+};
+// Una clave «texto|contexto» separa dos usos del mismo texto castellano con distinta traducción.
+function tr(lang, s, v) { const r = (lang === 'en' && EN[s]) || s.split('|')[0]; return v ? r.replace(/\{(\w+)\}/g, (m, k) => k in v ? v[k] : m) : r; }
+// Número para los mensajes: coma decimal en castellano, punto en inglés.
+function numOf(lang) { return (v, d) => { const s = String(+(+v).toFixed(d == null ? 1 : d)); return lang === 'en' ? s : s.replace('.', ','); }; }
+function listOf(lang, a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + tr(lang, ' y ') + a[a.length - 1]; }
 function validate(p) {
-  const errors = [], warns = [], oks = [];
+  const errors = [], warns = [], oks = [], t = (s, v) => tr(p.lang, s, v), mm = numOf(p.lang);
   const L = layout(p);
-  if (!(L.IW > 1 && L.ID > 1 && L.IH > 1)) { errors.push('Las paredes y el suelo no dejan espacio dentro. Reduce el grosor o aumenta las medidas.'); return { errors, warns, oks, L }; }
+  if (!(L.IW > 1 && L.ID > 1 && L.IH > 1)) { errors.push(t('Las paredes y el suelo no dejan espacio dentro. Reduce el grosor o aumenta las medidas.')); return { errors, warns, oks, L }; }
   const minX = Math.min(...L.xs.map(s => s[1] - s[0])), minY = Math.min(...L.ys.map(s => s[1] - s[0]));
-  if (minX < 2 || minY < 2) errors.push('Los huecos quedan demasiado pequeños (menos de 2 mm). Usa menos columnas o filas, o aumenta las medidas.');
-  if (L.badFr) warns.push('El reparto relativo no coincide con el número de columnas o filas, así que se reparte a partes iguales.');
+  if (minX < 2 || minY < 2) errors.push(t('Los huecos quedan demasiado pequeños (menos de 2 mm). Usa menos columnas o filas, o aumenta las medidas.'));
+  if (L.badFr) warns.push(t('El reparto relativo no coincide con el número de columnas o filas, así que se reparte a partes iguales.'));
   const nz = p.nozzle;
   const per = v => Math.round(v / nz * 100) / 100;
-  if (p.wall < 2 * nz) warns.push('La pared de ' + p.wall + ' mm tiene menos de 2 perímetros con boquilla de ' + nz + ' mm. Quedará frágil.');
-  else if (Math.abs(per(p.wall) - Math.round(per(p.wall))) > 0.15) warns.push('Con boquilla de ' + nz + ' mm, una pared de ' + (Math.round(p.wall / nz) * nz).toFixed(1) + ' mm se imprime más limpia (perímetros completos).');
-  if ((p.cols > 1 || p.rows > 1) && p.divT < 2 * nz) warns.push('Los separadores de ' + p.divT + ' mm son más finos que 2 perímetros de ' + nz + ' mm.');
+  if (p.wall < 2 * nz) warns.push(t('La pared de {w} mm tiene menos de 2 perímetros con boquilla de {n} mm. Quedará frágil.', { w: mm(p.wall, 2), n: mm(nz, 2) }));
+  else if (Math.abs(per(p.wall) - Math.round(per(p.wall))) > 0.15) warns.push(t('Con boquilla de {n} mm, una pared de {w} mm se imprime más limpia (perímetros completos).', { n: mm(nz, 2), w: mm(Math.round(p.wall / nz) * nz) }));
+  if ((p.cols > 1 || p.rows > 1) && p.divT < 2 * nz) warns.push(t('Los separadores de {d} mm son más finos que 2 perímetros de {n} mm.', { d: mm(p.divT, 2), n: mm(nz, 2) }));
   if (p.lidType === 'skirt') {
-    if (p.tol < 0.1) warns.push('Con una holgura menor de 0,1 mm la tapa puede quedar encajada para siempre.');
-    if (p.tol > 0.5) warns.push('Con más de 0,5 mm de holgura la tapa quedará suelta.');
-    if (p.skirt > L.OH) warns.push('El borde de la tapa es más alto que la caja.');
+    if (p.tol < 0.1) warns.push(t('Con una holgura menor de 0,1 mm la tapa puede quedar encajada para siempre.'));
+    if (p.tol > 0.5) warns.push(t('Con más de 0,5 mm de holgura la tapa quedará suelta.'));
+    if (p.skirt > L.OH) warns.push(t('El borde de la tapa es más alto que la caja.'));
   }
   if (p.lidType === 'hinge') {
     const G = hingeGeom(p, L);
-    if (L.OH < 8) errors.push('Para la bisagra la caja necesita al menos 8 mm de alto.');
-    else if (!G.ok) errors.push('La caja es demasiado estrecha para poner la bisagra. Necesita unos 25 mm de largo útil como mínimo.');
-    else if (p.plate < 1.2) warns.push('Un plato de menos de 1,2 mm de grosor se puede alabear o romper al abrir la tapa.');
+    if (L.OH < 8) errors.push(t('Para la bisagra la caja necesita al menos 8 mm de alto.'));
+    else if (!G.ok) errors.push(t('La caja es demasiado estrecha para poner la bisagra. Necesita unos 25 mm de largo útil como mínimo.'));
+    else if (p.plate < 1.2) warns.push(t('Un plato de menos de 1,2 mm de grosor se puede alabear o romper al abrir la tapa.'));
     if (errors.length) return { errors, warns, oks, L };
   }
-  const lt = latchOf(p), mm = v => String(+v.toFixed(1)).replace('.', ',');
+  const lt = latchOf(p);
   if (lt === 'snap') {
     const G = snapGeom(p), grip = 2 * p.snapB - p.tol;
-    if (!G.ok) errors.push('El borde que encaja es demasiado bajo para el clic. Necesita al menos ' + mm(G.minSkirt) + ' mm.');
-    else if (grip < 0.15) warns.push('Con este relieve y esta holgura el clic apenas se notará. Sube el relieve o baja la holgura.');
-    else if (grip > 0.8) warns.push('El clic será muy duro y puede rajar el borde de la tapa. Baja el relieve.');
+    if (!G.ok) errors.push(t('El borde que encaja es demasiado bajo para el clic. Necesita al menos {m} mm.', { m: mm(G.minSkirt) }));
+    else if (grip < 0.15) warns.push(t('Con este relieve y esta holgura el clic apenas se notará. Sube el relieve o baja la holgura.'));
+    else if (grip > 0.8) warns.push(t('El clic será muy duro y puede rajar el borde de la tapa. Baja el relieve.'));
   }
   if (lt === 'magnet') {
     const M = magnetGeom(p, L);
-    if (p.plate < 1.2) errors.push('Para los imanes el plato de la tapa necesita al menos 1,2 mm.');
-    else if (M.Db > L.OH - 0.8) errors.push('La caja es demasiado baja para el hueco de los imanes.');
-    else if (M.small) errors.push('Los compartimentos de las esquinas son demasiado pequeños para la columna de los imanes. Usa imanes más pequeños o menos columnas o filas.');
+    if (p.plate < 1.2) errors.push(t('Para los imanes el plato de la tapa necesita al menos 1,2 mm.'));
+    else if (M.Db > L.OH - 0.8) errors.push(t('La caja es demasiado baja para el hueco de los imanes.'));
+    else if (M.small) errors.push(t('Los compartimentos de las esquinas son demasiado pequeños para la columna de los imanes. Usa imanes más pequeños o menos columnas o filas.'));
   }
-  if (lt === 'clip' && !clipGeom(p, L).ok) errors.push('Para el pestillo la caja necesita al menos 12 mm de alto y unos 25 mm de largo.');
+  if (lt === 'clip' && !clipGeom(p, L).ok) errors.push(t('Para el pestillo la caja necesita al menos 12 mm de alto y unos 25 mm de largo.'));
   const lab = labelGeom(p, L);
   if (lab) {
-    if (!lab.fit) errors.push('La tapa es demasiado pequeña para poner texto.');
-    else if (lab.mode === 'engrave' && p.labelDepth > p.plate - 0.6) errors.push('Un grabado de ' + mm(p.labelDepth) + ' mm deja el plato demasiado fino. Con un plato de ' + mm(p.plate) + ' mm, graba como mucho ' + mm(Math.max(0, p.plate - 0.6)) + ' mm.');
+    if (!lab.fit) errors.push(t('La tapa es demasiado pequeña para poner texto.'));
+    else if (lab.mode === 'engrave' && p.labelDepth > p.plate - 0.6) errors.push(t('Un grabado de {d} mm deja el plato demasiado fino. Con un plato de {p} mm, graba como mucho {m} mm.', { d: mm(p.labelDepth), p: mm(p.plate), m: mm(Math.max(0, p.plate - 0.6)) }));
     else {
-      if (lab.fit < 0.999) warns.push('El texto no cabía en la tapa y se ha reducido a ' + mm(lab.size) + ' mm.');
-      if (lab.size < 5) warns.push('Con letras de menos de 5 mm los trazos finos pueden no salir bien.');
+      if (lab.fit < 0.999) warns.push(t('El texto no cabía en la tapa y se ha reducido a {s} mm.', { s: mm(lab.size) }));
+      if (lab.size < 5) warns.push(t('Con letras de menos de 5 mm los trazos finos pueden no salir bien.'));
     }
   }
   const R = cornerR(p, L), sides = sideLabels(p, L, roundedRect(0, 0, L.OW, L.OD, R));
   for (const sl of sides) {
-    if (!sl.fit) errors.push('El lateral ' + sl.name + ' no tiene sitio para texto (la caja es baja o la tapa tapa casi toda la pared).');
-    else if (sl.fit < 0.999) warns.push('En el lateral ' + sl.name + ' el texto no cabía y se ha reducido a ' + mm(sl.size) + ' mm.');
+    if (!sl.fit) errors.push(t('El lateral {s} no tiene sitio para texto (la caja es baja o la tapa tapa casi toda la pared).', { s: t(sl.name) }));
+    else if (sl.fit < 0.999) warns.push(t('En el lateral {s} el texto no cabía y se ha reducido a {z} mm.', { s: t(sl.name), z: mm(sl.size) }));
   }
-  if (sides.length && sides[0].mode === 'engrave' && p.labelDepth > p.wall - 0.8) errors.push('Una pared de ' + mm(p.wall) + ' mm solo deja grabar ' + mm(Math.max(0, p.wall - 0.8)) + ' mm en los laterales. Usa texto en relieve o una pared más gruesa.');
-  if (sides.length && sides[0].mode === 'emboss' && p.labelDepth > 1) warns.push('En los laterales, con más de 1 mm de relieve la parte de abajo de las letras queda en voladizo y puede colgar.');
-  if (sides.length && sides.every(sl => sl.fit) && Math.min(...sides.map(sl => sl.size)) < 5 && !(lab && lab.size < 5)) warns.push('Con letras de menos de 5 mm los trazos finos pueden no salir bien.');
+  if (sides.length && sides[0].mode === 'engrave' && p.labelDepth > p.wall - 0.8) errors.push(t('Una pared de {w} mm solo deja grabar {m} mm en los laterales. Usa texto en relieve o una pared más gruesa.', { w: mm(p.wall), m: mm(Math.max(0, p.wall - 0.8)) }));
+  if (sides.length && sides[0].mode === 'emboss' && p.labelDepth > 1) warns.push(t('En los laterales, con más de 1 mm de relieve la parte de abajo de las letras queda en voladizo y puede colgar.'));
+  if (sides.length && sides.every(sl => sl.fit) && Math.min(...sides.map(sl => sl.size)) < 5 && !(lab && lab.size < 5)) warns.push(t('Con letras de menos de 5 mm los trazos finos pueden no salir bien.'));
   if (errors.length) return { errors, warns, oks, L };
   const wide = Math.max(L.OW, L.OD);
   const lidMax = p.lidType !== 'none' ? lidDims(p, L) : null;
   const need = Math.max(wide, lidMax ? Math.max(lidMax.LW, lidMax.LD) : 0);
-  if (need > p.bed) warns.push('Una pieza mide ' + need.toFixed(0) + ' mm y tu cama es de ' + p.bed + ' mm. No cabe tal cual.');
-  oks.push('Se imprime sin soportes: la caja con la boca hacia arriba' + (p.lidType !== 'none' ? ' y la tapa con el plato sobre la cama.' : '.'));
-  if (p.lidType === 'hinge') oks.push('Bisagra: imprime caja y tapa por separado y pasa un trozo de ' + (p.pin === 1.75 ? 'filamento de 1,75 mm' : 'varilla de ' + p.pin + ' mm') + ' por los nudillos.');
-  if (lt === 'snap') oks.push('Clic: baja la tapa recta y aprieta hasta que haga clic. Si queda muy dura o muy floja, ajusta el relieve.');
+  if (need > p.bed) warns.push(t('Una pieza mide {n} mm y tu cama es de {b} mm. No cabe tal cual.', { n: need.toFixed(0), b: p.bed }));
+  oks.push(t(p.lidType !== 'none' ? 'Se imprime sin soportes: la caja con la boca hacia arriba y la tapa con el plato sobre la cama.' : 'Se imprime sin soportes: la caja con la boca hacia arriba.'));
+  if (p.lidType === 'hinge') oks.push(p.pin === 1.75 ? t('Bisagra: imprime caja y tapa por separado y pasa un trozo de filamento de 1,75 mm por los nudillos.')
+    : t('Bisagra: imprime caja y tapa por separado y pasa un trozo de varilla de {d} mm por los nudillos.', { d: mm(p.pin) }));
+  if (lt === 'snap') oks.push(t('Clic: baja la tapa recta y aprieta hasta que haga clic. Si queda muy dura o muy floja, ajusta el relieve.'));
   if (lt === 'magnet') {
     const M = magnetGeom(p, L), n = M.pts.length, sz = mm(p.magD) + ' × ' + mm(p.magH) + ' mm';
-    oks.push('Imanes: ' + n + ' de ' + sz + ' en la caja y otros ' + n + ' en la tapa. Pégalos con cianoacrilato y comprueba que se atraen antes de que seque.' +
-      (M.pr > 0.05 ? ' Los de la tapa sobresalen ' + mm(M.pr) + ' mm y entran en el hueco de la caja.' : ''));
+    oks.push(t('Imanes: {n} de {sz} en la caja y otros {n} en la tapa. Pégalos con cianoacrilato y comprueba que se atraen antes de que seque.', { n, sz }) +
+      (M.pr > 0.05 ? ' ' + t('Los de la tapa sobresalen {m} mm y entran en el hueco de la caja.', { m: mm(M.pr) }) : ''));
   }
-  if (lt === 'clip') oks.push('Pestillo: para abrir, tira de la lengüeta delantera hacia fuera y levanta la tapa.');
+  if (lt === 'clip') oks.push(t('Pestillo: para abrir, tira de la lengüeta delantera hacia fuera y levanta la tapa.'));
   if (lab) oks.push(lab.mode === 'emboss'
-    ? 'Texto en relieve: para que salga de otro color, cambia de filamento al llegar a ' + mm(p.plate) + ' mm de altura.'
-    : p.lidType === 'skirt' ? 'Texto grabado en la cara de la tapa que va sobre la cama; al darle la vuelta se lee al derecho.' : 'Texto grabado en la tapa.');
-  if (sides.length) oks.push('Texto ' + (sides[0].mode === 'emboss' ? 'en relieve' : 'grabado') + ' en ' + (sides.length > 1 ? 'los laterales ' : 'el lateral ') +
-    sides.map(sl => sl.name).join(', ').replace(/, ([^,]*)$/, ' y $1') + '.');
+    ? t('Texto en relieve: para que salga de otro color, cambia de filamento al llegar a {m} mm de altura.', { m: mm(p.plate) })
+    : t(p.lidType === 'skirt' ? 'Texto grabado en la cara de la tapa que va sobre la cama; al darle la vuelta se lee al derecho.' : 'Texto grabado en la tapa.'));
+  if (sides.length) oks.push(t('Texto ' + (sides[0].mode === 'emboss' ? 'en relieve' : 'grabado') + (sides.length > 1 ? ' en los laterales {s}.' : ' en el lateral {s}.'),
+    { s: listOf(p.lang, sides.map(sl => t(sl.name))) }));
   return { errors, warns, oks, L };
 }
 
@@ -939,7 +1009,7 @@ function makeZip(files) {
 // y lo demás sale de los valores por defecto, así los diseños viejos siguen abriéndose cuando se añaden opciones.
 const DESIGN_V = 1;
 const DESIGN_KEYS = ['mode', 'W', 'D', 'H', 'cols', 'rows', 'colFr', 'rowFr', 'divT', 'wall', 'floor', 'corner', 'lidType', 'tol', 'plate', 'skirt', 'pin', 'knuckles',
-  'latch', 'snapB', 'magD', 'magH', 'text', 'font', 'labelSize', 'labelMode', 'labelDepth', 'labelOn', 'bed', 'nozzle', 'color'];
+  'latch', 'snapB', 'magD', 'magH', 'text', 'font', 'labelSize', 'labelMode', 'labelDepth', 'labelOn', 'bed', 'nozzle', 'color', 'useCells', 'useText', 'usePrinter', 'useLid'];
 const DESIGN_ENUMS = { mode: ['outer', 'inner'], lidType: ['skirt', 'hinge', 'none'], latch: ['none', 'snap', 'magnet', 'clip'], labelMode: ['emboss', 'engrave'],
   font: ['sans', 'round', 'serif', 'mono', 'script'] };
 function designOf(S) { const d = { app: 'cajas-a-medida', v: DESIGN_V }; for (const k of DESIGN_KEYS) if (S[k] !== undefined) d[k] = S[k]; return d; }
@@ -954,8 +1024,15 @@ function designApply(d, base) {
     } else if (DESIGN_ENUMS[k]) out[k] = DESIGN_ENUMS[k].includes(v) ? v : b;
     else if (k === 'color') out[k] = typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v : b;
     else if (typeof b === 'number') out[k] = typeof v === 'number' && isFinite(v) ? v : b;
+    else if (typeof b === 'boolean') out[k] = typeof v === 'boolean' ? v : b;
     else out[k] = typeof v === 'string' ? v.slice(0, 500) : b;
   }
+  // Diseños de antes de los interruptores de apartado: se activa lo que se estuviera usando.
+  if (typeof d.useCells !== 'boolean') out.useCells = out.cols > 1 || out.rows > 1;
+  if (typeof d.useText !== 'boolean') out.useText = !!out.text.trim();
+  if (typeof d.usePrinter !== 'boolean') out.usePrinter = out.bed !== base.bed || out.nozzle !== base.nozzle;
+  if (typeof d.useLid !== 'boolean') out.useLid = out.lidType !== 'none';
+  if (out.lidType === 'none') out.lidType = base.lidType === 'none' ? 'skirt' : base.lidType; // «sin tapa» es ahora el interruptor apagado
   return out;
 }
 // Código para enlaces: JSON en UTF-8 y base64url (los emojis del texto pasan sin problemas).
@@ -977,47 +1054,156 @@ function designParse(str) {
 
 (function () {
   const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
-  const fmt = (n, d) => n.toLocaleString('es-ES', { maximumFractionDigits: d == null ? 1 : d });
+  // ---------- Idioma ----------
+  // Textos de la interfaz en inglés; la clave es el texto castellano tal cual aparece en el HTML o en el código.
+  Object.assign(EN, {
+    'Cajas a medida': 'Custom Boxes', 'Idioma': 'Language',
+    'Pon las medidas, reparte los huecos y descarga el STL. Se imprime sin soportes.': 'Set the size, split it into compartments and download the STL. Prints without supports.',
+    'Empieza por un modelo': 'Start from a model',
+    'O ajusta tú las medidas. Lo último que hagas se recuerda en este navegador; para guardar varios, usa «Mis diseños».': 'Or set the sizes yourself. Your latest changes are remembered in this browser; to keep several, use “My designs”.',
+    'Tornillos y tuercas': 'Nuts and bolts', 'Tarjetas SD': 'SD cards', 'Bandeja de mesa': 'Desk tray', 'Caja simple': 'Plain box', 'Joyero con bisagra': 'Hinged jewelry box',
+    'Tamaño': 'Size', 'Qué medidas das': 'Which size you give', 'Medidas por fuera': 'Outside size', 'Espacio por dentro': 'Inside space',
+    'Largo': 'Width', 'Fondo': 'Depth', 'Alto': 'Height', 'Profundidad|caja': 'Inside height',
+    'Paredes y esquinas': 'Walls and corners', 'Grosor pared': 'Wall', 'Grosor suelo': 'Floor', 'Radio esquinas': 'Corner radius',
+    'Con boquilla de 0,4 mm, una pared de 1,2 o 1,6 mm queda limpia. Radio 0 = esquinas vivas.': 'With a 0.4 mm nozzle, a 1.2 or 1.6 mm wall prints clean. Radius 0 = sharp corners.',
+    'Compartimentos': 'Compartments', 'Columnas': 'Columns', 'Filas': 'Rows', 'Huecos de distinto tamaño y separadores': 'Uneven compartments and dividers',
+    'Anchos': 'Widths', 'Fondos': 'Depths', 'Separador': 'Divider',
+    'Anchos y fondos son proporciones, una por columna o fila: «1,2,1» hace la del centro el doble de ancha. Vacío = todas iguales.': 'Widths and depths are proportions, one per column or row: “1,2,1” makes the middle one twice as wide. Empty = all equal.',
+    'Un solo hueco de {w} × {d} mm.': 'A single compartment of {w} × {d} mm.',
+    '{n} huecos de {w} × {d} mm, {h} mm de hondo.': '{n} compartments of {w} × {d} mm, {h} mm deep.',
+    '{n} huecos de distintos tamaños, {h} mm de hondo.': '{n} compartments of different sizes, {h} mm deep.',
+    'Tapa y cierre': 'Lid and closure', 'Tipo de tapa': 'Lid type', 'Encajada': 'Slip-on', 'Con bisagra': 'Hinged', 'Sin tapa': 'No lid',
+    'Eje de la bisagra': 'Hinge pin', 'Filamento 1,75': '1.75 filament', 'Varilla Ø 2': 'Ø 2 rod', 'Tornillo M3': 'M3 screw',
+    'Caja y tapa se imprimen por separado y se unen pasando un eje por los nudillos. La pestaña de delante sirve para abrirla.': 'Box and lid print separately and are joined by pushing a pin through the knuckles. The front tab is for opening it.',
+    'La tapa abraza la caja por fuera, como una caja de zapatos, y entra a presión.': 'The lid fits over the outside of the box, like a shoebox, with a friction fit.',
+    'Solo la caja, como una bandeja.': 'Just the box, like a tray.',
+    'Más grosor hace la tapa más rígida. Con «Auto» los nudillos se reparten según el ancho.': 'A thicker lid is stiffer. With “Auto” the knuckles are spread according to the width.',
+    'Holgura: el juego entre caja y tapa; 0,25 mm entra a presión en la mayoría de impresoras. Sube a 0,3–0,4 si queda dura.': 'Clearance: the gap between box and lid; 0.25 mm gives a friction fit on most printers. Go up to 0.3–0.4 if it’s too tight.',
+    'Cierre': 'Closure', 'Ninguno': 'None', 'Clic': 'Snap', 'Imanes': 'Magnets', 'Pestillo': 'Latch',
+    'Fuerza del clic': 'Snap strength', 'Ø del imán': 'Magnet Ø', 'Alto del imán': 'Magnet height',
+    'Un cordón alrededor de la caja y otro dentro del borde de la tapa: al cerrarla hace clic. Más fuerza, más duro de abrir.': 'A bead around the box and another inside the lid rim: it clicks when closed. More strength, harder to open.',
+    'Columnas en las esquinas de la caja con huecos para imanes de disco, y los huecos gemelos en la tapa.': 'Posts in the box corners with pockets for disc magnets, and matching pockets in the lid.',
+    'Columnas en las esquinas de la caja con huecos para imanes de disco, y los huecos gemelos en la tapa (solo delante, lejos de la bisagra).': 'Posts in the box corners with pockets for disc magnets, and matching pockets in the lid (front only, away from the hinge).',
+    'Una lengüeta flexible delante de la caja engancha la tapa al cerrarla. Sustituye a la pestaña de la tapa: para abrir, tira de la lengüeta.': 'A flexible tab on the front of the box catches the lid when closed. It replaces the lid tab: to open, pull the tab.',
+    'Ajustes de la tapa': 'Lid settings', 'Holgura': 'Clearance', 'Grosor tapa': 'Lid thickness', 'Alto del borde': 'Rim height', 'Nudillos': 'Knuckles', 'Auto': 'Auto',
+    'Texto': 'Text', 'Texto o emojis (Intro para otra línea)': 'Text or emojis (Enter for a new line)', 'Escribe, por ejemplo, TORNILLOS': 'Type, for example, SCREWS',
+    'Añadir emoji': 'Add emoji', 'Añadir {e}': 'Add {e}', 'Color {c}': 'Color {c}',
+    'Dónde va (puedes elegir varios)': 'Where it goes (pick several)', 'Dónde va el texto': 'Where the text goes',
+    'Tapa': 'Lid', 'Delante': 'Front', 'Detrás': 'Back', 'Izq.': 'Left', 'Dcha.': 'Right',
+    'Esta caja no tiene tapa': 'This box has no lid', 'Detrás está la bisagra': 'The hinge is at the back', 'Delante está el pestillo': 'The latch is at the front',
+    'Relieve o grabado': 'Embossed or engraved', 'En relieve': 'Embossed', 'Grabado': 'Engraved',
+    'Letra': 'Font', 'Grotesca': 'Grotesque', 'Gruesa': 'Bold', 'Con remates': 'Serif', 'Máquina': 'Typewriter', 'Manuscrita': 'Script',
+    'Altura': 'Height', 'Profundidad': 'Depth',
+    'La tapa encajada se imprime boca abajo, así que en ella el texto siempre va grabado, en la cara que toca la cama.': 'The slip-on lid prints upside down, so text on it is always engraved, on the face touching the bed.',
+    'En los laterales el texto queda por debajo del borde de la tapa.': 'On the sides the text sits below the lid rim.',
+    'El texto se centra y se reduce si no cabe. Los emojis salen como silueta y sus partes oscuras quedan huecas.': 'Text is centered and shrunk if it doesn’t fit. Emojis come out as silhouettes with their dark parts hollow.',
+    'Revisa {f}: está vacío o tiene un valor imposible (marcado en rojo).': 'Check {f}: it’s empty or has an impossible value (marked in red).',
+    'Revisa {f}: están vacíos o tienen un valor imposible (marcado en rojo).': 'Check {f}: they’re empty or have impossible values (marked in red).',
+    'Tu impresora': 'Your printer', 'Tamaño de la cama': 'Bed size', 'Boquilla': 'Nozzle', '0,4 mm': '0.4 mm', '0,6 mm': '0.6 mm', '0,8 mm': '0.8 mm',
+    'Color de la vista previa': 'Preview color', 'Vista previa 3D de la caja': '3D preview of the box', 'Qué pieza ver': 'Which part to show',
+    'Caja': 'Box', 'Juntas': 'Together', 'Encuadrar': 'Fit view', 'Apertura': 'Opening', 'Apertura de la tapa en grados': 'Lid opening in degrees',
+    'Arrastra para girar, rueda o pellizco para acercar. La cuadrícula son 10 mm.': 'Drag to rotate, scroll or pinch to zoom. The grid is 10 mm.',
+    'Tu navegador no puede mostrar la vista 3D. El STL se descarga igual.': 'Your browser can’t show the 3D view. The STL still downloads.',
+    'Descargar STL': 'Download STL', 'Descargar caja': 'Download box', 'Descargar caja y tapa': 'Download box and lid',
+    'Cada hueco': 'Each compartment', 'Por dentro': 'Inside', 'Pasador': 'Pin', 'Laterales': 'Sides', 'Material': 'Material',
+    'Ø {d} mm × {l} mm (entra por la izquierda; el otro extremo es ciego)': 'Ø {d} mm × {l} mm (goes in from the left; the other end is blind)',
+    'clic, cordones de {b} mm (aprieta {g} mm)': 'snap, {b} mm beads ({g} mm interference)',
+    '{n} de Ø {d} × {h} mm ({k} en la caja y {k} en la tapa)': '{n} of Ø {d} × {h} mm ({k} in the box and {k} in the lid)',
+    'pestillo delantero de {w} mm': '{w} mm front latch',
+    '{w} × {h} mm en la tapa, {m} {d} mm': '{w} × {h} mm on the lid, {m} {d} mm',
+    'en relieve': 'embossed', 'grabado': 'engraved', 'delante': 'at the front', 'detrás': 'at the back', 'a la izquierda': 'on the left', 'a la derecha': 'on the right',
+    '{v} cm³ · unos {g} g de PLA al 100 %': '{v} cm³ · about {g} g of PLA at 100 %',
+    'caja': 'box', 'tapa': 'lid', 'diseño': 'design',
+    'Guardado {f} con {n} archivos STL (caja y tapa). Descomprímelo y abre los STL en tu laminador.': 'Saved {f} with {n} STL files (box and lid). Unzip it and open the STLs in your slicer.',
+    'Guardado {f} con 1 archivo STL. Descomprímelo y ábrelo en tu laminador.': 'Saved {f} with 1 STL file. Unzip it and open it in your slicer.',
+    'Enviado.': 'Sent.', 'Descarga cancelada.': 'Download cancelled.', 'No se pudo guardar el archivo en esta vista.': 'The file couldn’t be saved in this view.',
+    'Descargando {f}.': 'Downloading {f}.',
+    'Mis diseños': 'My designs', 'Nombre del diseño': 'Design name', 'Caja de tornillos': 'Screw box', 'Guardar': 'Save', 'Abrir': 'Open', 'Borrar': 'Delete', '¿Seguro?': 'Sure?',
+    'Copiar enlace': 'Copy link', 'Copiar código': 'Copy code', 'Exportar .json': 'Export .json', 'Importar .json': 'Import .json',
+    'Abrir un enlace o código': 'Open a link or code', 'Pega aquí': 'Paste here',
+    'Se guardan en este navegador. Para abrirlos en otro dispositivo o pasárselos a alguien, copia el enlace o exporta el archivo. La descarga de los STL también lleva el archivo del diseño.': 'They are kept in this browser. To open them on another device or share them, copy the link or export the file. The STL download also includes the design file.',
+    'Se guardan en este navegador. Para abrirlos en otro dispositivo o pasárselos a alguien, copia el código o exporta el archivo. La descarga de los STL también lleva el archivo del diseño.': 'They are kept in this browser. To open them on another device or share them, copy the code or export the file. The STL download also includes the design file.',
+    'Diseño abierto desde el enlace.': 'Design opened from the link.', 'El enlace no contiene un diseño válido.': 'The link doesn’t contain a valid design.',
+    'Caja {d}': 'Box {d}', 'Abierto {f}.': 'Opened {f}.', 'Borrado {f}.': 'Deleted {f}.', 'Guardado {f} en este navegador.': 'Saved {f} in this browser.', 'Actualizado {f}.': 'Updated {f}.',
+    'Este navegador no deja guardar aquí. Exporta el archivo para no perderlo.': 'This browser won’t let us save here. Export the file so you don’t lose it.',
+    'Código copiado. Pégalo en «Abrir un enlace o código» para recuperar el diseño.': 'Code copied. Paste it into “Open a link or code” to get the design back.',
+    'Enlace copiado. Al abrirlo se carga este diseño.': 'Link copied. Opening it loads this design.',
+    'No se pudo copiar solo: está seleccionado abajo, cópialo con Ctrl+C o ⌘C.': 'Couldn’t copy automatically: it’s selected below, copy it with Ctrl+C or ⌘C.',
+    'Eso no parece un enlace o código de diseño.': 'That doesn’t look like a design link or code.', 'Diseño abierto.': 'Design opened.',
+    'Guardado {f}. Ábrelo con «Importar .json».': 'Saved {f}. Open it with “Import .json”.', 'Descargando {f}.': 'Downloading {f}.',
+    'Ese archivo no es un diseño de Cajas a medida.': 'That file is not a Custom Boxes design.',
+  });
+  const LANG_KEY = 'cajas-a-medida:idioma';
+  let lang = 'es';
+  try { lang = localStorage.getItem(LANG_KEY) || (/^es\b/i.test(navigator.language || '') ? 'es' : 'en'); } catch (e) {}
+  if (lang !== 'en') lang = 'es';
+  const t = (s, v) => tr(lang, s, v), q = s => lang === 'en' ? '“' + s + '”' : '«' + s + '»';
+  // Textos fijos del HTML: se apunta el original de cada nodo y atributo para poder cambiar de idioma y volver.
+  const fixedText = [], fixedAttr = [];
+  (function harvest() {
+    const w = document.createTreeWalker(document.querySelector('.wrap'), NodeFilter.SHOW_TEXT);
+    for (let n; (n = w.nextNode());) if (n.nodeValue.trim()) fixedText.push([n, n.nodeValue]);
+    for (const el of document.querySelectorAll('.wrap [placeholder], .wrap [aria-label], .wrap [title]'))
+      for (const a of ['placeholder', 'aria-label', 'title']) if (el.getAttribute(a)) fixedAttr.push([el, a, el.getAttribute(a)]);
+  })();
+  function localizeFixed() {
+    const swap = v => { const k = v.trim(); return k ? v.replace(k, t(k)) : v; };
+    for (const [n, v] of fixedText) n.nodeValue = swap(v);
+    for (const [el, a, v] of fixedAttr) el.setAttribute(a, swap(v));
+    document.documentElement.lang = lang; document.title = t('Cajas a medida');
+    for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  const fmt = (n, d) => n.toLocaleString(lang === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: d == null ? 1 : d });
   const COLORS = ['#d3d0c6', '#2f6fb0', '#d9482b', '#2f9b63', '#2b2f33'];
   const PRESETS = [
-    { name: 'Tornillos y tuercas', v: { mode: 'outer', W: 150, D: 100, H: 35, cols: 4, rows: 3, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 4, lidType: 'skirt', latch: 'none' } },
-    { name: 'Tarjetas SD', v: { mode: 'outer', W: 90, D: 60, H: 25, cols: 3, rows: 2, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 3, lidType: 'skirt', latch: 'none' } },
-    { name: 'Bandeja de mesa', v: { mode: 'outer', W: 200, D: 100, H: 40, cols: 2, rows: 1, colFr: '2,1', rowFr: '', divT: 1.6, wall: 1.6, floor: 1.6, corner: 8, lidType: 'none', latch: 'none' } },
-    { name: 'Caja simple', v: { mode: 'outer', W: 100, D: 100, H: 50, cols: 1, rows: 1, colFr: '', rowFr: '', divT: 1.2, wall: 2, floor: 2, corner: 8, lidType: 'skirt', latch: 'none' } },
-    { name: 'Joyero con bisagra', v: { mode: 'outer', W: 90, D: 60, H: 30, cols: 2, rows: 1, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 6, lidType: 'hinge', latch: 'magnet' } },
+    { name: 'Tornillos y tuercas', v: { mode: 'outer', W: 150, D: 100, H: 35, cols: 4, rows: 3, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 4, lidType: 'skirt', latch: 'none', useLid: true } },
+    { name: 'Tarjetas SD', v: { mode: 'outer', W: 90, D: 60, H: 25, cols: 3, rows: 2, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 3, lidType: 'skirt', latch: 'none', useLid: true } },
+    { name: 'Bandeja de mesa', v: { mode: 'outer', W: 200, D: 100, H: 40, cols: 2, rows: 1, colFr: '2,1', rowFr: '', divT: 1.6, wall: 1.6, floor: 1.6, corner: 8, lidType: 'skirt', latch: 'none', useLid: false } },
+    { name: 'Caja simple', v: { mode: 'outer', W: 100, D: 100, H: 50, cols: 1, rows: 1, colFr: '', rowFr: '', divT: 1.2, wall: 2, floor: 2, corner: 8, lidType: 'skirt', latch: 'none', useLid: true } },
+    { name: 'Joyero con bisagra', v: { mode: 'outer', W: 90, D: 60, H: 30, cols: 2, rows: 1, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 6, lidType: 'hinge', latch: 'magnet', useLid: true } },
   ];
-  const S = Object.assign({ tol: 0.25, plate: 2, skirt: 6, pin: 1.75, knuckles: 0, latch: 'none', snapB: 0.3, magD: 6, magH: 2, text: '', font: 'sans', labelSize: 12, labelMode: 'emboss', labelDepth: 0.6, open: 55, bed: 256, nozzle: 0.4, color: COLORS[0], show: 'box' }, PRESETS[0].v);
+  const S = Object.assign({ tol: 0.25, plate: 2, skirt: 6, pin: 1.75, knuckles: 0, latch: 'none', snapB: 0.3, magD: 6, magH: 2, text: '', font: 'sans', labelSize: 12, labelMode: 'emboss', labelDepth: 0.6, open: 55, bed: 256, nozzle: 0.4, color: COLORS[0], show: 'box' }, PRESETS[0].v, { useCells: false, useText: false, usePrinter: false, useLid: false });
   const DEFAULTS = Object.assign({}, S);
-  try { const raw = localStorage.getItem('cajas-a-medida'); if (raw) Object.assign(S, JSON.parse(raw)); } catch (e) {}
+  try {
+    const raw = localStorage.getItem('cajas-a-medida'), saved = raw ? JSON.parse(raw) : null;
+    if (saved) {
+      Object.assign(S, saved);
+      const n = designApply(Object.assign({}, saved, { app: 'cajas-a-medida', v: 1 }), DEFAULTS);
+      for (const k of ['useCells', 'useText', 'usePrinter', 'useLid']) if (!(k in saved)) S[k] = n[k];
+      S.lidType = n.lidType;
+    }
+  } catch (e) {}
   let note = ''; // aviso que se muestra tras el siguiente rebuild
   // Un enlace con #d=… abre ese diseño; luego se quita del enlace para que no quede desfasado al seguir editando.
   if (/^#d=/.test(location.hash)) {
-    try { Object.assign(S, designApply(designParse(location.hash), DEFAULTS)); note = 'Diseño abierto desde el enlace.'; }
-    catch (e) { note = 'El enlace no contiene un diseño válido.'; }
+    try { Object.assign(S, designApply(designParse(location.hash), DEFAULTS)); note = t('Diseño abierto desde el enlace.'); }
+    catch (e) { note = t('El enlace no contiene un diseño válido.'); }
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
   }
-  if ('lid' in S) { S.lidType = S.lid === false ? 'none' : (S.lidType || 'skirt'); delete S.lid; }
-  if (!['skirt', 'hinge', 'none'].includes(S.lidType)) S.lidType = 'skirt';
+  if ('lid' in S) { if (S.lid === false) S.useLid = false; delete S.lid; }
+  if (!['skirt', 'hinge'].includes(S.lidType)) S.lidType = 'skirt';
+  const lidOf = () => S.useLid ? S.lidType : 'none'; // el tipo de tapa que cuenta: con el apartado apagado, sin tapa
 
   let boxSoup = null, lidSoup = null, info = null, dirty = false;
 
   // ---------- Entradas ----------
   function writeInputs() {
     for (const el of $$('[data-k]')) { const k = el.dataset.k; if (k in S) el.value = S[k]; }
+    for (const el of $$('[data-use]')) { el.checked = !!S[el.dataset.use]; el.closest('.opt').classList.toggle('off', !el.checked); }
     for (const b of $$('[data-seg]')) b.setAttribute('aria-pressed', String(segValue(b.dataset.seg) === b.dataset.v));
     $$('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === S.color)));
-    $('#Hlabel').textContent = S.mode === 'inner' ? 'Profundidad' : 'Alto';
-    const lt = S.lidType;
+    $('#Hlabel').textContent = S.mode === 'inner' ? t('Profundidad|caja') : t('Alto');
+    const lt = lidOf();
     $('#lidFields').hidden = lt !== 'hinge'; $('#lidMore').hidden = lt === 'none';
     for (const l of $$('.controls [data-for]')) l.hidden = !l.dataset.for.split(' ').includes(lt);
-    $('#lidHint').textContent = {
+    $('#lidHint').textContent = t({
       hinge: 'Caja y tapa se imprimen por separado y se unen pasando un eje por los nudillos. La pestaña de delante sirve para abrirla.',
       skirt: 'La tapa abraza la caja por fuera, como una caja de zapatos, y entra a presión.',
       none: 'Solo la caja, como una bandeja.',
-    }[lt];
-    $('#lidMoreHint').textContent = lt === 'hinge'
+    }[lt]);
+    $('#lidMoreHint').textContent = t(lt === 'hinge'
       ? 'Más grosor hace la tapa más rígida. Con «Auto» los nudillos se reparten según el ancho.'
-      : 'Holgura: el juego entre caja y tapa; 0,25 mm entra a presión en la mayoría de impresoras. Sube a 0,3–0,4 si queda dura.';
+      : 'Holgura: el juego entre caja y tapa; 0,25 mm entra a presión en la mayoría de impresoras. Sube a 0,3–0,4 si queda dura.');
     const fits = { none: true, snap: lt === 'skirt', magnet: lt !== 'none', clip: lt === 'hinge' };
     for (const b of $$('[data-seg=latch]')) b.hidden = !fits[b.dataset.v];
     if (!fits[S.latch]) S.latch = 'none';
@@ -1025,21 +1211,21 @@ function designParse(str) {
     $('#latchRow').hidden = lt === 'none'; $('#latchHint').hidden = lt === 'none' || S.latch === 'none';
     $('#latchFields').hidden = S.latch === 'none' || S.latch === 'clip';
     for (const l of $$('#latchRow [data-latch]')) l.hidden = l.dataset.latch !== S.latch;
-    $('#latchHint').textContent = {
+    $('#latchHint').textContent = t({
       none: '',
       snap: 'Un cordón alrededor de la caja y otro dentro del borde de la tapa: al cerrarla hace clic. Más fuerza, más duro de abrir.',
       magnet: 'Columnas en las esquinas de la caja con huecos para imanes de disco, y los huecos gemelos en la tapa' + (lt === 'hinge' ? ' (solo delante, lejos de la bisagra).' : '.'),
       clip: 'Una lengüeta flexible delante de la caja engancha la tapa al cerrarla. Sustituye a la pestaña de la tapa: para abrir, tira de la lengüeta.',
-    }[S.latch];
+    }[S.latch]);
     const free = Object.assign({ lid: lt !== 'none' }, sidesFree({ lidType: lt, latch: S.latch }));
     const on = S.labelOn = Object.assign({ lid: true }, S.labelOn);
-    for (const b of $$('[data-place]')) { const k = b.dataset.place; b.disabled = !free[k]; b.setAttribute('aria-pressed', String(!!(on[k] && free[k]))); b.title = free[k] ? '' : k === 'lid' ? 'Esta caja no tiene tapa' : k === 'back' ? 'Detrás está la bisagra' : 'Delante está el pestillo'; }
+    for (const b of $$('[data-place]')) { const k = b.dataset.place; b.disabled = !free[k]; b.setAttribute('aria-pressed', String(!!(on[k] && free[k]))); b.title = free[k] ? '' : t(k === 'lid' ? 'Esta caja no tiene tapa' : k === 'back' ? 'Detrás está la bisagra' : 'Delante está el pestillo'); }
     const sidesOn = ['front', 'back', 'left', 'right'].some(k => on[k] && free[k]), lidOn = on.lid && free.lid;
     $('#labelModeSeg').hidden = !(sidesOn || (lidOn && lt === 'hinge'));
-    $('#depthLabel').textContent = S.labelMode === 'emboss' && !$('#labelModeSeg').hidden ? 'Altura' : 'Profundidad';
-    $('#labelHint').textContent = (lidOn && lt === 'skirt' ? 'La tapa encajada se imprime boca abajo, así que en ella el texto siempre va grabado, en la cara que toca la cama. ' : '') +
-      (sidesOn && lt === 'skirt' ? 'En los laterales el texto queda por debajo del borde de la tapa. ' : '') +
-      'El texto se centra y se reduce si no cabe. Los emojis salen como silueta y sus partes oscuras quedan huecas.';
+    $('#depthLabel').textContent = t(S.labelMode === 'emboss' && !$('#labelModeSeg').hidden ? 'Altura' : 'Profundidad');
+    $('#labelHint').textContent = (lidOn && lt === 'skirt' ? t('La tapa encajada se imprime boca abajo, así que en ella el texto siempre va grabado, en la cara que toca la cama.') + ' ' : '') +
+      (sidesOn && lt === 'skirt' ? t('En los laterales el texto queda por debajo del borde de la tapa.') + ' ' : '') +
+      t('El texto se centra y se reduce si no cabe. Los emojis salen como silueta y sus partes oscuras quedan huecas.');
     $('#tabLid').hidden = lt === 'none'; $('#tabBoth').hidden = lt === 'none';
     if (lt === 'none' && S.show !== 'box') S.show = 'box';
   }
@@ -1051,12 +1237,13 @@ function designParse(str) {
     else { const v = parseFloat(el.value); S[k] = isFinite(v) ? v : NaN; }
   }
   for (const el of $$('[data-k]')) el.addEventListener('input', () => { readInput(el); schedule(); });
+  for (const el of $$('[data-use]')) el.addEventListener('input', () => { S[el.dataset.use] = el.checked; writeInputs(); schedule(); });
   // La vista sigue a lo que editas: si cambias algo de la tapa o del texto y no se ve, enseña las dos piezas.
   function reveal(sec) {
-    const part = sec.dataset.part === 'lid' ? 'lid' : S.labelOn && S.labelOn.lid && S.lidType !== 'none' ? 'lid' : 'box';
+    const part = sec.dataset.part === 'lid' ? 'lid' : S.labelOn && S.labelOn.lid && lidOf() !== 'none' ? 'lid' : 'box';
     const vis = { box: ['box', 'both'], lid: ['lid', 'both'] }[part];
-    if (vis.includes(S.show) || (part === 'lid' && S.lidType === 'none')) return;
-    S.show = S.lidType === 'none' ? 'box' : 'both'; refit = true; writeInputs();
+    if (vis.includes(S.show) || (part === 'lid' && lidOf() === 'none')) return;
+    S.show = lidOf() === 'none' ? 'box' : 'both'; refit = true; writeInputs();
   }
   for (const ev of ['input', 'click']) $('.controls').addEventListener(ev, e => {
     const sec = e.target.closest('[data-part]');
@@ -1068,20 +1255,20 @@ function designParse(str) {
     writeInputs(); if (k === 'show') { applyShow(); fit(); } else schedule();
   });
   PRESETS.forEach((pr, i) => {
-    const c = document.createElement('button'); c.type = 'button'; c.className = 'chip'; c.textContent = pr.name;
-    c.addEventListener('click', () => { Object.assign(S, pr.v); if (S.lidType === 'none') S.show = 'box'; writeInputs(); schedule(true); });
+    const c = document.createElement('button'); c.type = 'button'; c.className = 'chip';
+    c.addEventListener('click', () => { Object.assign(S, pr.v, { useCells: pr.v.cols * pr.v.rows > 1 }); if (lidOf() === 'none') S.show = 'box'; writeInputs(); schedule(true); });
     $('#presets').appendChild(c);
   });
   for (const b of $$('[data-place]')) b.addEventListener('click', () => {
     const k = b.dataset.place; S.labelOn = Object.assign({ lid: true }, S.labelOn, { [k]: !(S.labelOn && S.labelOn[k]) }); writeInputs(); schedule();
   });
   ['⭐', '❤️', '🔩', '🔧', '🧵', '🎲', '💎', '🌿', '🐱', '⚡'].forEach(em => {
-    const c = document.createElement('button'); c.type = 'button'; c.className = 'chip emo'; c.textContent = em; c.setAttribute('aria-label', 'Añadir ' + em);
+    const c = document.createElement('button'); c.type = 'button'; c.className = 'chip emo'; c.textContent = em; c.dataset.em = em;
     c.addEventListener('click', () => { S.text = (S.text || '') + em; writeInputs(); schedule(); });
     $('#emojis').appendChild(c);
   });
   COLORS.forEach(c => {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.style.background = c; b.dataset.c = c; b.setAttribute('aria-label', 'Color ' + c);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.style.background = c; b.dataset.c = c; 
     b.addEventListener('click', () => { S.color = c; writeInputs(); applyColor(); render(); persist(); });
     $('#swatches').appendChild(b);
   });
@@ -1090,14 +1277,17 @@ function designParse(str) {
   // ---------- Modelo ----------
   let timer = 0, refit = false;
   function schedule(force) { refit = refit || !!force; if (timer) return; timer = requestAnimationFrame(() => { timer = 0; rebuild(); }); }
+  // Un apartado apagado no cuenta: un solo hueco, sin texto, y la cama y la boquilla por defecto.
   function params() {
-    const p = { mode: S.mode, W: S.W, D: S.D, H: S.H, cols: Math.round(S.cols), rows: Math.round(S.rows), colFr: S.colFr, rowFr: S.rowFr,
-      divT: S.divT, wall: S.wall, floor: S.floor, corner: S.corner, lidType: S.lidType, tol: S.tol, plate: S.plate, skirt: S.skirt, pin: S.pin, knuckles: S.knuckles, bed: S.bed, nozzle: S.nozzle,
-      latch: S.latch, snapB: S.snapB, magD: S.magD, magH: S.magH, labelSize: S.labelSize, labelMode: S.labelMode, labelDepth: S.labelDepth };
+    const cells = !!S.useCells, printer = !!S.usePrinter;
+    const p = { mode: S.mode, W: S.W, D: S.D, H: S.H, cols: cells ? Math.round(S.cols) : 1, rows: cells ? Math.round(S.rows) : 1, colFr: cells ? S.colFr : '', rowFr: cells ? S.rowFr : '',
+      divT: S.divT, wall: S.wall, floor: S.floor, corner: S.corner, lidType: lidOf(), tol: S.tol, plate: S.plate, skirt: S.skirt, pin: S.pin, knuckles: S.knuckles,
+      bed: printer ? S.bed : DEFAULTS.bed, nozzle: printer ? S.nozzle : DEFAULTS.nozzle,
+      latch: S.latch, snapB: S.snapB, magD: S.magD, magH: S.magH, labelSize: S.labelSize, labelMode: S.labelMode, labelDepth: S.labelDepth, lang };
     const lt = latchOf(p);
     p.labelOn = Object.assign({ lid: true }, S.labelOn);
-    p.label = Object.keys(p.labelOn).some(k => p.labelOn[k] && (k !== 'lid' || p.lidType !== 'none')) ? labelData() : null;
-    const nums = ['W', 'D', 'H', 'cols', 'rows', 'divT', 'wall', 'floor', 'corner'].concat(p.lidType === 'skirt' ? ['tol', 'plate', 'skirt'] : p.lidType === 'hinge' ? ['plate', 'pin', 'knuckles'] : [],
+    p.label = S.useText && Object.keys(p.labelOn).some(k => p.labelOn[k] && (k !== 'lid' || p.lidType !== 'none')) ? labelData() : null;
+    const nums = ['W', 'D', 'H', 'wall', 'floor', 'corner'].concat(cells ? ['cols', 'rows', 'divT'] : [], p.lidType === 'skirt' ? ['tol', 'plate', 'skirt'] : p.lidType === 'hinge' ? ['plate', 'pin', 'knuckles'] : [],
       lt === 'snap' ? ['snapB'] : lt === 'magnet' ? ['magD', 'magH'] : [], p.label ? ['labelSize', 'labelDepth'] : []);
     bad = nums.filter(k => !(isFinite(p[k]) && p[k] >= RANGES[k][0] && p[k] <= RANGES[k][1]));
     return bad.length ? null : p;
@@ -1108,8 +1298,8 @@ function designParse(str) {
   let bad = [];
   function markBad() {
     for (const el of $$('[data-k]')) el.closest('.in').classList.toggle('bad', bad.includes(el.dataset.k));
-    const names = bad.map(k => { const el = $('[data-k="' + k + '"]'), d = el.closest('details'); if (d) d.open = true; return '«' + el.closest('.f').firstChild.textContent.trim() + '»'; });
-    return names.length ? 'Revisa ' + names.join(', ').replace(/, ([^,]*)$/, ' y $1') + ': ' + (names.length > 1 ? 'están vacíos o tienen' : 'está vacío o tiene') + ' un valor imposible (marcado en rojo).' : '';
+    const names = bad.map(k => { const el = $('[data-k="' + k + '"]'), d = el.closest('details'); if (d) d.open = true; return q(el.closest('.f').firstChild.textContent.trim()); });
+    return names.length ? t(names.length > 1 ? 'Revisa {f}: están vacíos o tienen un valor imposible (marcado en rojo).' : 'Revisa {f}: está vacío o tiene un valor imposible (marcado en rojo).', { f: listOf(lang, names) }) : '';
   }
   // Texto: se dibuja en un lienzo en blanco, se convierte en máscara y se traza (traceMask). Las partes casi negras de
   // los emojis cuentan como vacío, así un emoji sale como silueta con sus detalles huecos.
@@ -1161,12 +1351,12 @@ function designParse(str) {
     $('#msgs').innerHTML = ''; msgs.forEach(([c, m]) => { const li = document.createElement('li'); li.className = c; li.textContent = m; $('#msgs').appendChild(li); });
     $('#dl').disabled = !ok;
     if (ok) { readout(); updateMeshes(); persist(); } else { $('#readout').textContent = ''; }
-    $('#dl').textContent = ok && lidSoup ? 'Descargar caja y tapa' : 'Descargar caja';
+    $('#dl').textContent = t(ok && lidSoup ? 'Descargar caja y tapa' : 'Descargar caja');
     if (ok) {
       const L = info.L, n = L.xs.length * L.ys.length, w = L.xs.map(q => q[1] - q[0]), d = L.ys.map(q => q[1] - q[0]);
       const same = Math.max(...w) - Math.min(...w) < 0.05 && Math.max(...d) - Math.min(...d) < 0.05;
-      $('#cellHint').textContent = n === 1 ? 'Un solo hueco de ' + fmt(w[0]) + ' × ' + fmt(d[0]) + ' mm.' :
-        n + ' huecos' + (same ? ' de ' + fmt(w[0]) + ' × ' + fmt(d[0]) + ' mm' : ' de distintos tamaños') + ', ' + fmt(L.IH) + ' mm de hondo.';
+      $('#cellHint').textContent = t(n === 1 ? 'Un solo hueco de {w} × {d} mm.' : same ? '{n} huecos de {w} × {d} mm, {h} mm de hondo.' : '{n} huecos de distintos tamaños, {h} mm de hondo.',
+        { n, w: fmt(w[0]), d: fmt(d[0]), h: fmt(L.IH) });
     }
     $('#status').textContent = note; note = '';
   }
@@ -1179,20 +1369,20 @@ function designParse(str) {
     const same = (mxx - mnx < 0.05 && mxy - mny < 0.05);
     const hole = same ? fmt(mnx) + ' × ' + fmt(mny) : fmt(mnx) + '–' + fmt(mxx) + ' × ' + fmt(mny) + '–' + fmt(mxy);
     const rows = [
-      ['Caja', fmt(L.OW) + ' × ' + fmt(L.OD) + ' × ' + fmt(L.OH) + ' mm'],
-      ['Cada hueco', hole + ' × ' + fmt(L.IH) + ' mm'],
+      [t('Caja'), fmt(L.OW) + ' × ' + fmt(L.OD) + ' × ' + fmt(L.OH) + ' mm'],
+      [t(sx.length * sy.length > 1 ? 'Cada hueco' : 'Por dentro'), hole + ' × ' + fmt(L.IH) + ' mm'],
     ];
-    if (D) rows.push(['Tapa', fmt(D.LW) + ' × ' + fmt(D.LD) + ' × ' + fmt(D.LH) + ' mm']);
-    if (info.G) rows.push(['Pasador', 'Ø ' + fmt(p.pin, 2) + ' mm × ' + fmt(Math.floor(info.G.Lh - 1.5), 0) + ' mm (entra por la izquierda; el otro extremo es ciego)']);
+    if (D) rows.push([t('Tapa'), fmt(D.LW) + ' × ' + fmt(D.LD) + ' × ' + fmt(D.LH) + ' mm']);
+    if (info.G) rows.push([t('Pasador'), t('Ø {d} mm × {l} mm (entra por la izquierda; el otro extremo es ciego)', { d: fmt(p.pin, 2), l: fmt(Math.floor(info.G.Lh - 1.5), 0) })]);
     const lt = latchOf(p);
-    if (lt === 'snap') rows.push(['Cierre', 'clic, cordones de ' + fmt(p.snapB, 2) + ' mm (aprieta ' + fmt(2 * p.snapB - p.tol, 2) + ' mm)']);
-    if (lt === 'magnet') { const M = magnetGeom(p, L); rows.push(['Imanes', fmt(2 * M.pts.length, 0) + ' de Ø ' + fmt(p.magD) + ' × ' + fmt(p.magH) + ' mm (' + M.pts.length + ' en la caja y ' + M.pts.length + ' en la tapa)']); }
-    if (lt === 'clip') rows.push(['Cierre', 'pestillo delantero de ' + fmt(clipGeom(p, L).w, 0) + ' mm']);
+    if (lt === 'snap') rows.push([t('Cierre'), t('clic, cordones de {b} mm (aprieta {g} mm)', { b: fmt(p.snapB, 2), g: fmt(2 * p.snapB - p.tol, 2) })]);
+    if (lt === 'magnet') { const M = magnetGeom(p, L); rows.push([t('Imanes'), t('{n} de Ø {d} × {h} mm ({k} en la caja y {k} en la tapa)', { n: fmt(2 * M.pts.length, 0), d: fmt(p.magD), h: fmt(p.magH), k: M.pts.length })]); }
+    if (lt === 'clip') rows.push([t('Cierre'), t('pestillo delantero de {w} mm', { w: fmt(clipGeom(p, L).w, 0) })]);
     const lab = labelGeom(p, L);
-    if (lab && lab.fit) rows.push(['Texto', fmt(lab.w) + ' × ' + fmt(lab.h) + ' mm en la tapa, ' + (lab.mode === 'emboss' ? 'en relieve' : 'grabado') + ' ' + fmt(p.labelDepth) + ' mm']);
+    if (lab && lab.fit) rows.push([t('Texto'), t('{w} × {h} mm en la tapa, {m} {d} mm', { w: fmt(lab.w), h: fmt(lab.h), m: t(lab.mode === 'emboss' ? 'en relieve' : 'grabado'), d: fmt(p.labelDepth) })]);
     const sl = sideLabels(p, L, roundedRect(0, 0, L.OW, L.OD, cornerR(p, L))).filter(s => s.fit);
-    if (sl.length) rows.push([lab && lab.fit ? 'Laterales' : 'Texto', sl.map(s => fmt(s.w) + ' × ' + fmt(s.h) + ' mm ' + ({ front: 'delante', back: 'detrás', left: 'a la izquierda', right: 'a la derecha' })[s.side]).join(' · ') + ', ' + (sl[0].mode === 'emboss' ? 'en relieve' : 'grabado')]);
-    rows.push(['Material', fmt(vol / 1000) + ' cm³ · unos ' + fmt(g, 0) + ' g de PLA al 100 %']);
+    if (sl.length) rows.push([t(lab && lab.fit ? 'Laterales' : 'Texto'), sl.map(s => fmt(s.w) + ' × ' + fmt(s.h) + ' mm ' + t({ front: 'delante', back: 'detrás', left: 'a la izquierda', right: 'a la derecha' }[s.side])).join(' · ') + ', ' + t(sl[0].mode === 'emboss' ? 'en relieve' : 'grabado')]);
+    rows.push([t('Material'), t('{v} cm³ · unos {g} g de PLA al 100 %', { v: fmt(vol / 1000), g: fmt(g, 0) })]);
     $('#readout').innerHTML = '';
     for (const [k, v] of rows) { const d = document.createElement('div'); const s = document.createElement('span'); s.textContent = k; d.appendChild(s); d.appendChild(document.createTextNode(v)); $('#readout').appendChild(d); }
   }
@@ -1317,22 +1507,22 @@ function designParse(str) {
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { makePlate(); render(); });
 
   // ---------- Descarga ----------
-  function nameBase() { const L = info.L; return 'caja_' + Math.round(L.OW) + 'x' + Math.round(L.OD) + 'x' + Math.round(L.OH); }
+  function nameBase() { const L = info.L; return t('caja') + '_' + Math.round(L.OW) + 'x' + Math.round(L.OD) + 'x' + Math.round(L.OH); }
   async function download() {
     if (!info) return;
     const base = nameBase(), files = [{ name: base + '.stl', data: soupToStl(boxSoup, base) }];
-    if (lidSoup) files.push({ name: base + '_tapa.stl', data: soupToStl(lidSoup, base + ' tapa') });
+    if (lidSoup) files.push({ name: base + '_' + t('tapa') + '.stl', data: soupToStl(lidSoup, base + ' ' + t('tapa')) });
     const nStl = files.length;
     const status = $('#status');
     let dls = null;
     try { dls = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dls = null; }
     if (dls) {
       try {
-        const zip = makeZip(files.concat([{ name: base + '_diseño.json', data: new TextEncoder().encode(designJson()) }]));
+        const zip = makeZip(files.concat([{ name: base + '_' + t('diseño') + '.json', data: new TextEncoder().encode(designJson()) }]));
         const r = await dls.save({ filename: base + '.zip', data: new Blob([zip], { type: 'application/zip' }) });
-        status.textContent = r.status === 'saved' ? 'Guardado ' + base + '.zip con ' + nStl + (nStl > 1 ? ' archivos STL (caja y tapa). Descomprímelo y abre los STL en tu laminador.' : ' archivo STL. Descomprímelo y ábrelo en tu laminador.') : 'Enviado.';
+        status.textContent = r.status === 'saved' ? t(nStl > 1 ? 'Guardado {f} con {n} archivos STL (caja y tapa). Descomprímelo y abre los STL en tu laminador.' : 'Guardado {f} con 1 archivo STL. Descomprímelo y ábrelo en tu laminador.', { f: base + '.zip', n: nStl }) : t('Enviado.');
       } catch (e) {
-        status.textContent = e && e.code === 'declined' ? 'Descarga cancelada.' : 'No se pudo guardar el archivo en esta vista.';
+        status.textContent = t(e && e.code === 'declined' ? 'Descarga cancelada.' : 'No se pudo guardar el archivo en esta vista.');
       }
       return;
     }
@@ -1341,7 +1531,7 @@ function designParse(str) {
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([f.data], { type: 'model/stl' })); a.download = f.name;
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     }, i * 400));
-    status.textContent = 'Descargando ' + files.map(f => f.name).join(' y ') + '.';
+    status.textContent = t('Descargando {f}.', { f: listOf(lang, files.map(f => f.name)) });
   }
   $('#dl').addEventListener('click', download);
 
@@ -1353,11 +1543,11 @@ function designParse(str) {
   function writeSaves(a) { try { localStorage.setItem(SAVES_KEY, JSON.stringify(a)); return true; } catch (e) { return false; } }
   function say(m) { $('#status').textContent = m; }
   function openDesign(d, msg) {
-    let n; try { n = designApply(d, DEFAULTS); } catch (e) { say(e.message); return; }
-    Object.assign(S, n); if (S.lidType === 'none') S.show = 'box';
+    let n; try { n = designApply(d, DEFAULTS); } catch (e) { say(t(e.message)); return; }
+    Object.assign(S, n); if (lidOf() === 'none') S.show = 'box';
     note = msg; writeInputs(); schedule(true);
   }
-  function defaultName() { return 'Caja ' + [S.W, S.D, S.H].map(v => fmt(v, 0)).join(' × '); }
+  function defaultName() { return t('Caja {d}', { d: [S.W, S.D, S.H].map(v => fmt(v, 0)).join(' × ') }); }
   function renderSaves() {
     const list = $('#saveList'), a = readSaves();
     $('#savesCount').textContent = a.length ? '(' + a.length + ')' : '';
@@ -1365,14 +1555,14 @@ function designParse(str) {
     a.forEach((x, i) => {
       const li = document.createElement('li'), meta = document.createElement('div'), b = document.createElement('b'), sm = document.createElement('small');
       b.textContent = x.name; b.title = x.name;
-      sm.textContent = ' ' + new Date(x.at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+      sm.textContent = ' ' + new Date(x.at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
       meta.append(b, sm);
-      const open = document.createElement('button'); open.type = 'button'; open.className = 'chip'; open.textContent = 'Abrir';
-      open.addEventListener('click', () => { $('#saveName').value = x.name; openDesign(x.d, 'Abierto «' + x.name + '».'); });
-      const del = document.createElement('button'); del.type = 'button'; del.className = 'chip del'; del.textContent = 'Borrar';
+      const open = document.createElement('button'); open.type = 'button'; open.className = 'chip'; open.textContent = t('Abrir');
+      open.addEventListener('click', () => { $('#saveName').value = x.name; openDesign(x.d, t('Abierto {f}.', { f: q(x.name) })); });
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'chip del'; del.textContent = t('Borrar');
       del.addEventListener('click', () => {
-        if (!del.dataset.armed) { del.dataset.armed = '1'; del.textContent = '¿Seguro?'; setTimeout(() => { delete del.dataset.armed; del.textContent = 'Borrar'; }, 3000); return; }
-        const cur = readSaves(); cur.splice(i, 1); writeSaves(cur); renderSaves(); say('Borrado «' + x.name + '».');
+        if (!del.dataset.armed) { del.dataset.armed = '1'; del.textContent = t('¿Seguro?'); setTimeout(() => { delete del.dataset.armed; del.textContent = t('Borrar'); }, 3000); return; }
+        const cur = readSaves(); cur.splice(i, 1); writeSaves(cur); renderSaves(); say(t('Borrado {f}.', { f: q(x.name) }));
       });
       li.append(meta, open, del); list.appendChild(li);
     });
@@ -1382,20 +1572,19 @@ function designParse(str) {
     const entry = { name, at: Date.now(), d: designOf(S) };
     if (i >= 0) a.splice(i, 1);
     a.unshift(entry);
-    if (!writeSaves(a.slice(0, 100))) { say('Este navegador no deja guardar aquí. Exporta el archivo para no perderlo.'); return; }
-    $('#saveName').value = name; renderSaves(); say((i >= 0 ? 'Actualizado «' : 'Guardado «') + name + '» en este navegador.');
+    if (!writeSaves(a.slice(0, 100))) { say(t('Este navegador no deja guardar aquí. Exporta el archivo para no perderlo.')); return; }
+    $('#saveName').value = name; renderSaves(); say(t(i >= 0 ? 'Actualizado {f}.' : 'Guardado {f} en este navegador.', { f: q(name) }));
   });
   $('#saveName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveBtn').click(); });
-  if (inFrame) { $('#copyCode').textContent = 'Copiar código'; $('#codeWord').textContent = 'código'; }
   $('#copyCode').addEventListener('click', async () => {
     const code = designCode(designOf(S)), text = inFrame ? code : location.href.split('#')[0] + '#d=' + code;
-    try { await navigator.clipboard.writeText(text); say(inFrame ? 'Código copiado. Pégalo en «Abrir un enlace o código» para recuperar el diseño.' : 'Enlace copiado. Al abrirlo se carga este diseño.'); }
-    catch (e) { const f = $('#pasteCode'); f.value = text; f.focus(); f.select(); say('No se pudo copiar solo: está seleccionado abajo, cópialo con Ctrl+C o ⌘C.'); }
+    try { await navigator.clipboard.writeText(text); say(t(inFrame ? 'Código copiado. Pégalo en «Abrir un enlace o código» para recuperar el diseño.' : 'Enlace copiado. Al abrirlo se carga este diseño.')); }
+    catch (e) { const f = $('#pasteCode'); f.value = text; f.focus(); f.select(); say(t('No se pudo copiar solo: está seleccionado abajo, cópialo con Ctrl+C o ⌘C.')); }
   });
   $('#pasteBtn').addEventListener('click', () => {
     const v = $('#pasteCode').value; if (!v.trim()) return;
-    let d; try { d = designParse(v); } catch (e) { say('Eso no parece un enlace o código de diseño.'); return; }
-    openDesign(d, 'Diseño abierto.'); $('#pasteCode').value = '';
+    let d; try { d = designParse(v); } catch (e) { say(t('Eso no parece un enlace o código de diseño.')); return; }
+    openDesign(d, t('Diseño abierto.')); $('#pasteCode').value = '';
   });
   $('#pasteCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('#pasteBtn').click(); });
   function fileName() { return ($('#saveName').value.trim() || (info ? nameBase() : 'caja')).replace(/[\\/:*?"<>|]+/g, '_') + '.json'; }
@@ -1404,22 +1593,41 @@ function designParse(str) {
     let dls = null;
     try { dls = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dls = null; }
     if (dls) {
-      try { await dls.save({ filename: name, data }); say('Guardado ' + name + '. Ábrelo con «Importar .json».'); }
-      catch (e) { say(e && e.code === 'declined' ? 'Descarga cancelada.' : 'No se pudo guardar el archivo en esta vista.'); }
+      try { await dls.save({ filename: name, data }); say(t('Guardado {f}. Ábrelo con «Importar .json».', { f: name })); }
+      catch (e) { say(t(e && e.code === 'declined' ? 'Descarga cancelada.' : 'No se pudo guardar el archivo en esta vista.')); }
       return;
     }
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' })); a.download = name;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    say('Descargando ' + name + '.');
+    say(t('Descargando {f}.', { f: name }));
   });
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
   $('#importFile').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
-    let d; try { d = JSON.parse(await f.text()); } catch (err) { say('Ese archivo no es un diseño de Cajas a medida.'); return; }
+    let d; try { d = JSON.parse(await f.text()); } catch (err) { say(t('Ese archivo no es un diseño de Cajas a medida.')); return; }
     $('#saveName').value = d && typeof d.name === 'string' ? d.name : f.name.replace(/\.json$/i, '');
-    openDesign(d, 'Abierto ' + f.name + '.');
+    openDesign(d, t('Abierto {f}.', { f: f.name }));
   });
   renderSaves();
+
+  // Textos que pone el código: se rehacen al cambiar de idioma.
+  function applyLang() {
+    localizeFixed();
+    $$('#presets .chip').forEach((c, i) => { c.textContent = t(PRESETS[i].name); });
+    for (const c of $$('#emojis .chip')) c.setAttribute('aria-label', t('Añadir {e}', { e: c.dataset.em }));
+    for (const b of $$('.sw')) b.setAttribute('aria-label', t('Color {c}', { c: b.dataset.c }));
+    $('#copyCode').textContent = t(inFrame ? 'Copiar código' : 'Copiar enlace');
+    $('#savesHint').textContent = t(inFrame
+      ? 'Se guardan en este navegador. Para abrirlos en otro dispositivo o pasárselos a alguien, copia el código o exporta el archivo. La descarga de los STL también lleva el archivo del diseño.'
+      : 'Se guardan en este navegador. Para abrirlos en otro dispositivo o pasárselos a alguien, copia el enlace o exporta el archivo. La descarga de los STL también lleva el archivo del diseño.');
+    writeInputs(); renderSaves();
+  }
+  for (const b of $$('[data-lang]')) b.addEventListener('click', () => {
+    if (b.dataset.lang === lang) return;
+    lang = b.dataset.lang; try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
+    applyLang(); rebuild();
+  });
+  applyLang();
 
   $('#open').value = S.open;
   writeInputs(); initThree(); rebuild(); resize();
