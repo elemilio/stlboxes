@@ -20,6 +20,7 @@ Es un único `index.html`, sin compilación ni servidor: ábrelo en el navegador
 - **Avisos de impresión**: pared con perímetros incompletos, holguras raras, piezas que no caben en tu cama, etc.
 - **Vista 3D** de la caja, la tapa o las dos juntas (con la bisagra abriéndose).
 - **Interfaz mínima**: compartimentos, tapa, texto e impresora se encienden con un interruptor; apagados no ocupan sitio.
+- **Modo oscuro**: sigue al del sistema, o elígelo con el botón de la barra superior.
 - **Castellano e inglés**, con un selector en la barra superior (la primera vez se elige según el idioma del navegador).
 - **Mis diseños**: guarda tus cajas con nombre en el navegador y vuelve a abrirlas para editarlas. Para llevarlas a otro dispositivo, copia el enlace (o el código, dentro del visor de claude.ai) o exporta el `.json`.
 

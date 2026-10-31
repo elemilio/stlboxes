@@ -109,6 +109,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .msgs li.ok::before { background: var(--accent); }
 .status { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0; }
 .seg.lang { flex: none; }
+.themebtn { flex: none; display: grid; place-items: center; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 7px; background: var(--field); color: var(--ink); cursor: pointer; }
+.themebtn:hover { border-color: var(--accent); }
+.themebtn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.themebtn[aria-pressed=true] .moon, .themebtn[aria-pressed=false] .sun { display: none; }
 .seg.lang button { padding: 6px 10px; font-size: 0.8rem; font-weight: 700; }
 .saves { flex: none; border: 0; padding: 0; background: none; }
 .saves[open] { display: block; padding: 0; }
@@ -124,7 +128,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .opt.off > :not(.sechead) { display: none !important; }
 .opt.off h2 { opacity: 0.75; }
 .switch { appearance: none; -webkit-appearance: none; flex: none; width: 38px; height: 22px; margin: 0; border-radius: 99px; background: var(--line); position: relative; cursor: pointer; transition: background 0.15s; }
-.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--field); box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); transition: transform 0.15s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); transition: transform 0.15s; }
 .switch:checked { background: var(--accent); }
 .switch:checked::after { transform: translateX(16px); }
 .switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -178,6 +182,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
         <p class="status" id="savesStatus" role="status"></p>
       </div>
     </details>
+    <button type="button" class="themebtn" id="themeBtn" aria-pressed="false"><svg class="moon" viewBox="0 0 20 20" aria-hidden="true"><path d="M16 12.5A6.5 6.5 0 0 1 7.5 4a6.5 6.5 0 1 0 8.5 8.5z"/></svg><svg class="sun" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6 16 16M4 16l1.4-1.4M14.6 5.4 16 4"/></svg></button>
     <div class="seg lang" role="group" aria-label="Idioma">
       <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button>
       <button type="button" data-lang="en" lang="en" aria-label="English">EN</button>
@@ -1074,7 +1079,7 @@ function designParse(str) {
   // ---------- Idioma ----------
   // Textos de la interfaz en inglés; la clave es el texto castellano tal cual aparece en el HTML o en el código.
   Object.assign(EN, {
-    'Idioma': 'Language',
+    'Idioma': 'Language', 'Modo oscuro': 'Dark mode', 'Modo claro': 'Light mode',
     'Pon las medidas, reparte los huecos y descarga el STL. Se imprime sin soportes.': 'Set the size, split it into compartments and download the STL. Prints without supports.',
     'Empieza por un modelo': 'Start from a model',
     'O ajusta tú las medidas. Lo último que hagas se recuerda en este navegador; para guardar varios, usa «Mis diseños».': 'Or set the sizes yourself. Your latest changes are remembered in this browser; to keep several, use “My designs”.',
@@ -1169,7 +1174,20 @@ function designParse(str) {
     for (const [el, a, v] of fixedAttr) el.setAttribute(a, swap(v));
     document.documentElement.lang = lang; document.title = 'Box Generator';
     for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+    themeUi();
   }
+  // ---------- Tema ----------
+  // Sin elección guardada sigue al sistema; el botón fija claro u oscuro con data-theme (la vista 3D lo sigue).
+  const THEME_KEY = 'cajas-a-medida:tema', root = document.documentElement, darkMQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  try { const th = localStorage.getItem(THEME_KEY); if (th === 'dark' || th === 'light') root.dataset.theme = th; } catch (e) {}
+  const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : !!(darkMQ && darkMQ.matches);
+  function themeUi() { const b = document.getElementById('themeBtn'), d = isDark(); b.setAttribute('aria-pressed', String(d)); b.setAttribute('aria-label', t(d ? 'Modo claro' : 'Modo oscuro')); b.title = b.getAttribute('aria-label'); }
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    root.dataset.theme = isDark() ? 'light' : 'dark';
+    try { localStorage.setItem(THEME_KEY, root.dataset.theme); } catch (e) {}
+    themeUi();
+  });
+  if (darkMQ) darkMQ.addEventListener('change', themeUi);
   const fmt = (n, d) => n.toLocaleString(lang === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: d == null ? 1 : d });
   const COLORS = ['#d3d0c6', '#2f6fb0', '#d9482b', '#2f9b63', '#2b2f33'];
   const PRESETS = [
