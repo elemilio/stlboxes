@@ -1,0 +1,940 @@
+<meta charset="utf-8">
+<title>Cajas a medida</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;700&display=swap">
+<style>
+/* Layout: panel de medidas a la izquierda, visor de la cama de impresión a la derecha; en móvil el visor va primero. */
+:root {
+  --bg: #edf0f1; --panel: #f7f9f9; --ink: #17262e; --muted: #576871; --line: #cbd3d7;
+  --accent: #0e7c6b; --accent-ink: #ffffff; --warn: #a24a05; --bad: #b3261e;
+  --stage: #dde3e6; --grid: #b3bfc5; --grid2: #cad3d8; --field: #ffffff;
+  --sans: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11181c; --panel: #182229; --ink: #e6edf0; --muted: #93a5af; --line: #2b3a43;
+    --accent: #3dbfa6; --accent-ink: #06211b; --warn: #f0a04b; --bad: #ff8a80;
+    --stage: #0d1316; --grid: #384a54; --grid2: #263640; --field: #0f171b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11181c; --panel: #182229; --ink: #e6edf0; --muted: #93a5af; --line: #2b3a43;
+  --accent: #3dbfa6; --accent-ink: #06211b; --warn: #f0a04b; --bad: #ff8a80;
+  --stage: #0d1316; --grid: #384a54; --grid2: #263640; --field: #0f171b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.45;
+  padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1260px; margin: 0 auto; display: grid; gap: 20px 28px; grid-template-columns: minmax(300px, 390px) minmax(0, 1fr); grid-template-areas: "head head" "controls view"; align-items: start; }
+header { grid-area: head; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+h1 { font-size: 1.7rem; line-height: 1.1; margin: 0; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 60ch; }
+.controls { grid-area: controls; min-width: 0; }
+.view { grid-area: view; min-width: 0; position: sticky; top: max(16px, env(safe-area-inset-top, 0px)); display: grid; gap: 12px; }
+section { padding-block: 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+section:first-child { border-top: 0; padding-top: 0; }
+h2 { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.f { display: grid; gap: 3px; min-width: 0; font-size: 0.82rem; color: var(--muted); }
+.f .in { display: flex; align-items: center; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding-right: 8px; }
+.f .in:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.f input[type=number], .f input[type=text], .f select { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink); font: 500 0.95rem var(--mono); padding: 8px 8px; outline: none; }
+.f select { font-family: var(--sans); }
+.f i { font-style: normal; font: 400 0.75rem var(--mono); color: var(--muted); }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--field); }
+.seg button { font: 500 0.88rem var(--sans); color: var(--ink); background: transparent; border: 0; padding: 8px 6px; cursor: pointer; border-left: 1px solid var(--line); }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 0.82rem var(--sans); color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 99px; padding: 5px 11px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.swatches { display: flex; gap: 8px; align-items: center; }
+.sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); cursor: pointer; padding: 0; }
+.sw[aria-pressed=true] { border-color: var(--ink); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.hint { font-size: 0.8rem; color: var(--muted); margin: 0; }
+.stage { position: relative; background: var(--stage); border: 1px solid var(--line); border-radius: 10px; height: min(62vh, 640px); min-height: 340px; overflow: hidden; touch-action: none; }
+.stage canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+.stage canvas:active { cursor: grabbing; }
+.tabs { position: absolute; left: 10px; top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tabs .seg { background: color-mix(in srgb, var(--panel) 88%, transparent); }
+.tabs .seg button { padding: 6px 12px; font-size: 0.82rem; }
+.fit { font: 500 0.82rem var(--sans); color: var(--ink); background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); border-radius: 7px; padding: 6px 11px; cursor: pointer; }
+.fit.open { display: flex; align-items: center; gap: 8px; cursor: default; }
+.fit.open input { width: 120px; accent-color: var(--accent); }
+.stage-note { position: absolute; left: 12px; bottom: 10px; right: 12px; font: 400 0.74rem var(--mono); color: var(--muted); pointer-events: none; }
+.nogl { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); }
+.bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 18px; align-items: center; }
+.readout { display: grid; gap: 2px; font: 400 0.82rem var(--mono); color: var(--ink); min-width: 0; }
+.readout span { color: var(--muted); }
+.btn { font: 700 0.98rem var(--sans); background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 12px 20px; cursor: pointer; white-space: nowrap; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.alt { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+.msgs { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 0.85rem; }
+.msgs li { padding-left: 14px; position: relative; }
+.msgs li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.msgs li.warn { color: var(--warn); } .msgs li.warn::before { background: var(--warn); }
+.msgs li.err { color: var(--bad); font-weight: 500; } .msgs li.err::before { background: var(--bad); }
+.msgs li.ok::before { background: var(--accent); }
+.status { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0; }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "view" "controls"; }
+  .view { position: static; }
+  .stage { height: 52vh; min-height: 300px; }
+  .bar { grid-template-columns: minmax(0, 1fr); }
+  .btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Cajas a medida</h1>
+    <p>Pon las medidas, reparte los huecos y descarga el STL. Se imprime sin soportes.</p>
+  </header>
+
+  <div class="controls">
+    <section>
+      <h2>Punto de partida</h2>
+      <div class="chips" id="presets"></div>
+    </section>
+
+    <section>
+      <h2>Medidas</h2>
+      <div class="seg" role="group" aria-label="Qué medidas das">
+        <button type="button" data-seg="mode" data-v="outer" aria-pressed="true">Exteriores</button>
+        <button type="button" data-seg="mode" data-v="inner" aria-pressed="false">Interiores</button>
+      </div>
+      <div class="row">
+        <label class="f">Largo (X)<span class="in"><input id="W" data-k="W" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span></label>
+        <label class="f">Fondo (Y)<span class="in"><input id="D" data-k="D" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span></label>
+        <label class="f"><span id="Hlabel">Alto (Z)</span><span class="in"><input id="H" data-k="H" type="number" inputmode="decimal" step="1" min="5"><i>mm</i></span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Compartimentos</h2>
+      <div class="row">
+        <label class="f">Columnas<span class="in"><input id="cols" data-k="cols" type="number" inputmode="numeric" step="1" min="1" max="12"></span></label>
+        <label class="f">Filas<span class="in"><input id="rows" data-k="rows" type="number" inputmode="numeric" step="1" min="1" max="12"></span></label>
+        <label class="f">Separador<span class="in"><input id="divT" data-k="divT" type="number" inputmode="decimal" step="0.2" min="0.4"><i>mm</i></span></label>
+      </div>
+      <div class="row two">
+        <label class="f">Anchos relativos (vacío = iguales)<span class="in"><input id="colFr" data-k="colFr" type="text" placeholder="1,2,1"></span></label>
+        <label class="f">Fondos relativos<span class="in"><input id="rowFr" data-k="rowFr" type="text" placeholder="2,1"></span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Paredes</h2>
+      <div class="row">
+        <label class="f">Pared<span class="in"><input id="wall" data-k="wall" type="number" inputmode="decimal" step="0.2" min="0.4"><i>mm</i></span></label>
+        <label class="f">Suelo<span class="in"><input id="floor" data-k="floor" type="number" inputmode="decimal" step="0.2" min="0.4"><i>mm</i></span></label>
+        <label class="f">Esquinas<span class="in"><input id="corner" data-k="corner" type="number" inputmode="decimal" step="1" min="0"><i>mm</i></span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Tapa</h2>
+      <div class="seg" role="group" aria-label="Tipo de tapa">
+        <button type="button" data-seg="lid" data-v="skirt" aria-pressed="true">Encajada</button>
+        <button type="button" data-seg="lid" data-v="hinge" aria-pressed="false">Con bisagra</button>
+        <button type="button" data-seg="lid" data-v="none" aria-pressed="false">Sin tapa</button>
+      </div>
+      <div class="row" id="lidFields">
+        <label class="f" data-for="skirt">Holgura<span class="in"><input id="tol" data-k="tol" type="number" inputmode="decimal" step="0.05" min="0"><i>mm</i></span></label>
+        <label class="f" data-for="skirt hinge">Plato<span class="in"><input id="plate" data-k="plate" type="number" inputmode="decimal" step="0.2" min="0.6"><i>mm</i></span></label>
+        <label class="f" data-for="skirt">Borde que encaja<span class="in"><input id="skirt" data-k="skirt" type="number" inputmode="decimal" step="1" min="2"><i>mm</i></span></label>
+        <label class="f" data-for="hinge">Pasador<span class="in"><select id="pin" data-k="pin"><option value="1.75">Ø 1,75 (filamento)</option><option value="2">Ø 2 (varilla)</option><option value="3">Ø 3 (tornillo M3)</option></select></span></label>
+        <label class="f" data-for="hinge">Nudillos<span class="in"><select id="knuckles" data-k="knuckles"><option value="0">Auto</option><option value="3">3</option><option value="5">5</option><option value="7">7</option></select></span></label>
+      </div>
+      <p class="hint" id="lidHint"></p>
+      <div class="row" id="latchRow">
+        <label class="f">Cierre<span class="in"><select id="latch" data-k="latch" data-str><option value="none">Ninguno</option><option value="snap">Clic</option><option value="magnet">Imanes</option><option value="clip">Pestillo</option></select></span></label>
+        <label class="f" data-latch="snap">Relieve<span class="in"><input id="snapB" data-k="snapB" type="number" inputmode="decimal" step="0.05" min="0.1" max="1"><i>mm</i></span></label>
+        <label class="f" data-latch="magnet">Ø imán<span class="in"><input id="magD" data-k="magD" type="number" inputmode="decimal" step="1" min="2" max="20"><i>mm</i></span></label>
+        <label class="f" data-latch="magnet">Alto imán<span class="in"><input id="magH" data-k="magH" type="number" inputmode="decimal" step="0.5" min="0.5" max="10"><i>mm</i></span></label>
+      </div>
+      <p class="hint" id="latchHint"></p>
+    </section>
+
+    <section>
+      <h2>Tu impresora</h2>
+      <div class="row">
+        <label class="f">Cama<span class="in"><select id="bed" data-k="bed"><option value="180">180 mm</option><option value="220">220 mm</option><option value="256">256 mm</option><option value="300">300 mm</option><option value="350">350 mm</option></select></span></label>
+        <label class="f">Boquilla<span class="in"><select id="nozzle" data-k="nozzle"><option value="0.4">0,4 mm</option><option value="0.6">0,6 mm</option><option value="0.8">0,8 mm</option></select></span></label>
+      </div>
+      <div class="f">Color de la vista previa
+        <div class="swatches" id="swatches"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view">
+    <div class="stage" id="stage">
+      <canvas id="cv" aria-label="Vista previa 3D de la caja"></canvas>
+      <div class="tabs">
+        <div class="seg" role="group" aria-label="Qué pieza ver">
+          <button type="button" data-seg="show" data-v="box" aria-pressed="true">Caja</button>
+          <button type="button" data-seg="show" data-v="lid" aria-pressed="false" id="tabLid">Tapa</button>
+          <button type="button" data-seg="show" data-v="both" aria-pressed="false" id="tabBoth">Juntas</button>
+        </div>
+        <button type="button" class="fit" id="fit">Encuadrar</button>
+        <label class="fit open" id="openWrap" hidden>Apertura <input id="open" type="range" min="0" max="120" step="1" value="55" aria-label="Apertura de la tapa en grados"></label>
+      </div>
+      <div class="stage-note" id="stageNote">Arrastra para girar, rueda o pellizco para acercar. La cuadrícula son 10 mm.</div>
+      <div class="nogl" id="nogl" hidden>Tu navegador no puede mostrar la vista 3D. El STL se descarga igual.</div>
+    </div>
+    <ul class="msgs" id="msgs"></ul>
+    <div class="bar">
+      <div class="readout" id="readout"></div>
+      <div style="display:grid;gap:6px;justify-items:end">
+        <button type="button" class="btn" id="dl">Descargar STL</button>
+      </div>
+    </div>
+    <p class="status" id="status" role="status"></p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/earcut@2.2.4/dist/earcut.min.js"></script>
+<script>
+// ==CORE-START==
+// Geometría pura (sin DOM). Todo en milímetros, eje Z hacia arriba.
+function segFor(r) { return Math.max(3, Math.min(14, Math.ceil(r / 1.2) + 3)); }
+
+// Rectángulo con esquinas redondeadas, en sentido antihorario. Sin puntos repetidos.
+// n fija los segmentos por esquina (para que dos contornos desplazados tengan los mismos vértices).
+function roundedRect(x0, y0, x1, y1, r, n) {
+  const w = x1 - x0, h = y1 - y0;
+  r = Math.max(0, Math.min(r, w / 2 - 1e-6, h / 2 - 1e-6));
+  if (r < 0.05) return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+  n = n || segFor(r);
+  const pts = [];
+  const cs = [[x1 - r, y0 + r, -90], [x1 - r, y1 - r, 0], [x0 + r, y1 - r, 90], [x0 + r, y0 + r, 180]];
+  for (const [cx, cy, a0] of cs) {
+    for (let i = 0; i <= n; i++) {
+      const a = (a0 + 90 * i / n) * Math.PI / 180;
+      pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+  }
+  return pts;
+}
+function polyArea(ring) {
+  let s = 0;
+  for (let i = 0; i < ring.length; i++) { const a = ring[i], b = ring[(i + 1) % ring.length]; s += a[0] * b[1] - b[0] * a[1]; }
+  return s / 2;
+}
+
+class Soup {
+  constructor() { this.a = []; this.m = null; }
+  tri(p, q, r) { const m = this.m; if (m) { p = m(p); q = m(q); r = m(r); } this.a.push(p[0], p[1], p[2], q[0], q[1], q[2], r[0], r[1], r[2]); }
+  // Pared vertical entre z0 y z1. outward=true: la normal sale a la derecha del recorrido (anillo antihorario = pared exterior).
+  wall(ring, z0, z1, outward) { this.loft(ring, z0, ring, z1, outward); }
+  // Como wall, pero uniendo dos contornos distintos con el mismo número de vértices (paredes con relieve).
+  loft(r0, z0, r1, z1, outward) {
+    const n = r0.length;
+    for (let i = 0; i < n; i++) {
+      const a = r0[i], b = r0[(i + 1) % n], c = r1[i], d = r1[(i + 1) % n];
+      const a0 = [a[0], a[1], z0], b0 = [b[0], b[1], z0], a1 = [c[0], c[1], z1], b1 = [d[0], d[1], z1];
+      if (outward) { this.tri(a0, b0, b1); this.tri(a0, b1, a1); }
+      else { this.tri(a0, b1, b0); this.tri(a0, a1, b1); }
+    }
+  }
+  // Tapa plana de un contorno convexo (abanico desde el centro).
+  fan(ring, z, up) {
+    let cx = 0, cy = 0;
+    for (const p of ring) { cx += p[0]; cy += p[1]; }
+    const c = [cx / ring.length, cy / ring.length, z], n = ring.length;
+    for (let i = 0; i < n; i++) {
+      const a = ring[i], b = ring[(i + 1) % n];
+      const pa = [a[0], a[1], z], pb = [b[0], b[1], z];
+      if (up) this.tri(c, pa, pb); else this.tri(c, pb, pa);
+    }
+  }
+  // Cara plana de un contorno con agujeros (earcut). No añade vértices nuevos.
+  cap(outer, holes, z, up) {
+    const flat = [], hi = [];
+    for (const p of outer) flat.push(p[0], p[1]);
+    for (const h of holes) { hi.push(flat.length / 2); for (const p of h) flat.push(p[0], p[1]); }
+    const idx = earcut(flat, hi.length ? hi : null, 2);
+    const n = flat.length / 2, px = k => flat[2 * k], py = k => flat[2 * k + 1];
+    // Earcut puede trazar una arista por encima de un vértice alineado (rejillas de huecos con esquinas vivas).
+    // Eso dejaría una unión en T con las paredes, así que esas aristas se parten en los vértices que atraviesan.
+    const order = Array.from({ length: n }, (_, i) => i).sort((i, j) => px(i) - px(j)), xsorted = order.map(px);
+    const cache = new Map();
+    const between = (a0, b0) => {
+      const a = Math.min(a0, b0), b = Math.max(a0, b0), key = a + ',' + b; // siempre se calcula de menor a mayor índice
+      let r = cache.get(key);
+      if (!r) {
+        const ax = px(a), ay = py(a), dx = px(b) - ax, dy = py(b) - ay, len = Math.hypot(dx, dy), len2 = len * len, out = [];
+        const lo = Math.min(ax, px(b)) - 1e-6, hi2 = Math.max(ax, px(b)) + 1e-6;
+        let l = 0, h = n;
+        while (l < h) { const m = (l + h) >> 1; if (xsorted[m] < lo) l = m + 1; else h = m; }
+        for (let k = l; k < n && xsorted[k] <= hi2; k++) {
+          const v = order[k]; if (v === a || v === b) continue;
+          const vx = px(v) - ax, vy = py(v) - ay;
+          if (Math.abs(dx * vy - dy * vx) > 1e-7 * len) continue;
+          const t = (vx * dx + vy * dy) / len2;
+          if (t > 1e-9 && t < 1 - 1e-9) out.push([t, v]);
+        }
+        out.sort((m, q) => m[0] - q[0]);
+        r = out.map(o => o[1]); cache.set(key, r);
+      }
+      return a0 < b0 ? r : r.slice().reverse();
+    };
+    const P = k => [flat[2 * k], flat[2 * k + 1], z];
+    const emit = (a, b, c) => { if (up) this.tri(P(a), P(b), P(c)); else this.tri(P(a), P(c), P(b)); };
+    for (let i = 0; i < idx.length; i += 3) {
+      let a = idx[i], b = idx[i + 1], c = idx[i + 2];
+      const area = (px(b) - px(a)) * (py(c) - py(a)) - (px(c) - px(a)) * (py(b) - py(a));
+      if (area < 0) { const t = b; b = c; c = t; }
+      const ab = between(a, b), bc = between(b, c), ca = between(c, a);
+      if (!ab.length && !bc.length && !ca.length) { emit(a, b, c); continue; }
+      const per = [a, ...ab, b, ...bc, c, ...ca]; // perímetro del triángulo con los vértices intermedios, antihorario
+      const g = [(px(a) + px(b) + px(c)) / 3, (py(a) + py(b) + py(c)) / 3, z]; // vértice interior: no crea uniones en T
+      for (let k = 0; k < per.length; k++) {
+        const u = P(per[k]), v = P(per[(k + 1) % per.length]);
+        if (up) this.tri(g, u, v); else this.tri(g, v, u);
+      }
+    }
+  }
+  array() { return new Float32Array(this.a); }
+}
+
+function splitSpans(len, n, fr, gap) {
+  const arr = (fr && fr.length === n && fr.every(v => v > 0)) ? fr : Array(n).fill(1);
+  const s = arr.reduce((a, b) => a + b, 0), avail = len - (n - 1) * gap;
+  const out = []; let x = 0;
+  for (let i = 0; i < n; i++) { const w = avail * arr[i] / s; out.push([x, x + w]); x += w + gap; }
+  return out;
+}
+function parseFractions(text) {
+  if (!text || !String(text).trim()) return null;
+  const v = String(text).split(/[\s,;:]+/).filter(Boolean).map(s => parseFloat(s.replace(',', '.')));
+  return v.length && v.every(x => isFinite(x) && x > 0) ? v : NaN;
+}
+
+function layout(p) {
+  const wall = p.wall, fl = p.floor;
+  let OW, OD, OH;
+  if (p.mode === 'inner') { OW = p.W + 2 * wall; OD = p.D + 2 * wall; OH = p.H + fl; }
+  else { OW = p.W; OD = p.D; OH = p.H; }
+  const IW = OW - 2 * wall, ID = OD - 2 * wall, IH = OH - fl;
+  const cf = parseFractions(p.colFr), rf = parseFractions(p.rowFr);
+  const xs = splitSpans(IW, p.cols, Array.isArray(cf) ? cf : null, p.divT).map(([a, b]) => [wall + a, wall + b]);
+  const ys = splitSpans(ID, p.rows, Array.isArray(rf) ? rf : null, p.divT).map(([a, b]) => [wall + a, wall + b]);
+  return { OW, OD, OH, IW, ID, IH, xs, ys, badFr: (cf !== null && !Array.isArray(cf)) || (rf !== null && !Array.isArray(rf)) ||
+    (Array.isArray(cf) && cf.length !== p.cols) || (Array.isArray(rf) && rf.length !== p.rows) };
+}
+function lidDims(p, L) {
+  if (p.lidType === 'hinge') {
+    const G = hingeGeom(p, L);
+    return { LW: L.OW, LD: G.tab + G.yc + G.Rk, LH: 2 * G.Rk, yMin: -G.tab, yMax: G.yc + G.Rk, e: 0 };
+  }
+  const e = p.tol + p.wall;
+  return { LW: L.OW + 2 * e, LD: L.OD + 2 * e, LH: p.plate + p.skirt, yMin: 0, yMax: L.OD + 2 * e, e };
+}
+
+// ---------- Bisagra de pasador ----------
+// El eje va por detrás de la pared trasera, a la altura del borde de la caja más el radio del nudillo.
+// Los nudillos se alternan: los de la caja cuelgan de la pared y los de la tapa del plato. Cada nudillo es un
+// prisma cerrado que se solapa 0,5 mm con la pared o el plato (el laminador los funde).
+function circlePoly(cy, cz, r, n) {
+  const pts = [];
+  for (let i = 0; i < n; i++) { const a = 2 * Math.PI * i / n; pts.push([cy + r * Math.cos(a), cz + r * Math.sin(a)]); }
+  return pts;
+}
+function convexHull(pts) {
+  const P = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const q of P) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 1e-12) lo.pop(); lo.push(q); }
+  for (let i = P.length - 1; i >= 0; i--) { const q = P[i]; while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], q) <= 1e-12) up.pop(); up.push(q); }
+  lo.pop(); up.pop();
+  return lo.concat(up); // antihorario
+}
+function outlineWithEdits(x0, y0, x1, y1, r, front, back) {
+  r = Math.max(0, Math.min(r, (x1 - x0) / 2 - 1e-6, (y1 - y0) / 2 - 1e-6));
+  const pts = [];
+  if (r < 0.05) { pts.push([x0, y0], ...front, [x1, y0], [x1, y1], ...back, [x0, y1]); return pts; }
+  const n = segFor(r);
+  const arc = (cx, cy, a0) => { for (let i = 0; i <= n; i++) { const a = (a0 + 90 * i / n) * Math.PI / 180; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } };
+  arc(x1 - r, y0 + r, -90); arc(x1 - r, y1 - r, 0); pts.push(...back); arc(x0 + r, y1 - r, 90); arc(x0 + r, y0 + r, 180); pts.push(...front);
+  return pts;
+}
+function hingeGeom(p, L) {
+  const R = Math.max(0, Math.min(p.corner, L.OW / 2, L.OD / 2));
+  const rh = (p.pin + 0.3) / 2, Rk = rh + 1.6, gx = 0.5, ov = 0.5;
+  const yc = L.OD + Rk + 0.3, zc = L.OH + Rk;
+  const margin = Math.max(R, 4) + 2, Lh = Math.min(L.OW - 2 * margin, 110);
+  let n = p.knuckles > 0 ? p.knuckles : (Lh < 45 ? 3 : Lh < 80 ? 5 : 7), seg = 0;
+  for (; n >= 3; n -= 2) { seg = (Lh - (n - 1) * gx) / n; if (seg >= 5) break; }
+  const ok = n >= 3 && seg >= 5 && Lh > 0;
+  const x0 = (L.OW - Lh) / 2, ranges = [];
+  if (ok) for (let i = 0; i < n; i++) ranges.push({ x0: x0 + i * (seg + gx), x1: x0 + i * (seg + gx) + seg, box: i % 2 === 0 });
+  const tab = latchOf(p) === 'clip' ? 0 : 7, tabW = Math.max(8, Math.min(24, L.OW - 2 * (R + 2)));
+  return { R, rh, Rk, gx, ov, yc, zc, Lh, n, seg, ok, ranges, tab, tabW, yRec: L.OD - ov - 0.6 };
+}
+function hingeBoxProfile(L, G) {
+  const A = [L.OD - G.ov, L.OH - 0.4], F = [G.yc, G.zc - Math.SQRT2 * G.Rk];
+  const B = [L.OD - G.ov, Math.max(0.3, F[1] - (G.yc - (L.OD - G.ov)))]; // pendiente de 45° o más hacia la pared: sin soportes
+  return convexHull(circlePoly(G.yc, G.zc, G.Rk, 32).concat([A, F, B]));
+}
+function hingeLidProfile(p, L, G) { // en el sistema de la tapa: z = 0 es la cama
+  return convexHull(circlePoly(G.yc, G.Rk, G.Rk, 32).concat([[G.yc - G.Rk, 0], [G.yc + G.Rk, 0], [L.OD - G.ov, 0], [L.OD - G.ov, p.plate]]));
+}
+// Prisma a lo largo de X con el perfil dado (en el plano YZ) y un taladro para el pasador. blind: taladro ciego por el extremo x1.
+function hingePrism(S, outer, hole, x0, x1, blind) {
+  S.m = q => [q[2], q[0], q[1]]; // (u, v, w) = (y, z, x)
+  S.cap(outer, [hole], x0, false);
+  S.wall(outer, x0, x1, true);
+  if (blind) { const bt = 0.8; S.wall(hole, x0, x1 - bt, false); S.fan(hole, x1 - bt, false); S.cap(outer, [], x1, true); }
+  else { S.wall(hole, x0, x1, false); S.cap(outer, [hole], x1, true); }
+  S.m = null;
+}
+function addHingeBox(S, p, L) {
+  const G = hingeGeom(p, L); if (!G.ok) return;
+  const outer = hingeBoxProfile(L, G), hole = circlePoly(G.yc, G.zc, G.rh, 28), boxes = G.ranges.filter(r => r.box);
+  boxes.forEach((r, i) => hingePrism(S, outer, hole, r.x0, r.x1, i === boxes.length - 1));
+}
+
+// ---------- Cierres ----------
+// Cada cierre vale para un tipo de tapa: clic para la encajada, pestillo para la bisagra, imanes para las dos.
+function latchOf(p) {
+  const l = p.latch;
+  if (l === 'snap') return p.lidType === 'skirt' ? l : 'none';
+  if (l === 'clip') return p.lidType === 'hinge' ? l : 'none';
+  if (l === 'magnet') return p.lidType !== 'none' ? l : 'none';
+  return 'none';
+}
+function cornerR(p, L) {
+  const R = Math.max(0, Math.min(p.corner, L.OW / 2, L.OD / 2));
+  return latchOf(p) === 'snap' ? Math.max(R, p.snapB + 0.2) : R; // el cordón necesita esquinas algo redondeadas
+}
+// Clic: un cordón en la caja y otro dentro del borde de la tapa, más cerca de su canto. Al cerrar, el de la tapa
+// pasa por encima del de la caja y queda debajo. Perfiles triangulares a 45°: ninguno necesita soportes.
+// Profundidades medidas desde el borde de la caja hacia abajo.
+function snapGeom(p) {
+  const b = p.snapB, lidLo = p.skirt - 0.6, lidHi = lidLo - 2 * b, boxLo = lidHi - 0.2, boxHi = boxLo - 2 * b;
+  return { b, lid: [lidHi, lidLo], box: [boxHi, boxLo], ok: boxHi >= 0.6, minSkirt: 1.4 + 4 * b };
+}
+// Pared con relieve: zs = [[z, desplazamiento], ...] de abajo arriba; ring(d) da el contorno desplazado d.
+function reliefWall(S, ring, zs, outward) {
+  for (let i = 0; i + 1 < zs.length; i++) S.loft(ring(zs[i][1]), zs[i][0], ring(zs[i + 1][1]), zs[i + 1][0], outward);
+}
+// Imanes: una columna maciza en cada esquina de la caja (las delanteras con bisagra) con un hueco desde arriba,
+// y el hueco gemelo en la tapa. Si el plato es fino, el imán de la tapa sobresale y entra en la parte alta del hueco
+// de la caja, que por eso es más hondo (y de paso centra la tapa).
+function magnetGeom(p, L) {
+  const R = cornerR(p, L), mr = p.magD / 2, m = 1.2;
+  const c = Math.max(mr + m, R - (R - mr - m) / Math.SQRT2); // centro del imán, a 1,2 mm de la pared por fuera
+  const k = c + mr + m, s = k - p.wall; // la columna llega hasta k desde el borde exterior
+  const Dl = Math.max(0, Math.min(p.magH, p.plate - 0.6)), pr = p.magH - Dl, Db = p.magH + 0.2 + pr;
+  const four = p.lidType === 'skirt';
+  const at = [true, four, four, true]; // esquinas [abajo-dcha, arriba-dcha, arriba-izq, abajo-izq] (abajo = delante)
+  const pts = [[L.OW - c, c], [L.OW - c, L.OD - c], [c, L.OD - c], [c, c]].filter((_, i) => at[i]);
+  const w = q => q[1] - q[0], nx = L.xs.length, ny = L.ys.length;
+  const small = [w(L.xs[0]), w(L.xs[nx - 1]), w(L.ys[0])].concat(four ? [w(L.ys[ny - 1])] : []).some(v => v < s + 2);
+  return { c, k, s, rHole: mr + 0.15, Dl, pr, Db, at, pts, small };
+}
+// Qué esquinas del compartimento (i, j) ocupa una columna de imán, en el orden de pocketRing.
+function magnetCuts(M, L, i, j) {
+  const li = i === L.xs.length - 1, lj = j === L.ys.length - 1;
+  const cut = [li && j === 0 && M.at[0], li && lj && M.at[1], i === 0 && lj && M.at[2], i === 0 && j === 0 && M.at[3]];
+  return cut.some(Boolean) ? cut : null;
+}
+// Compartimento redondeado con muescas cuadradas de lado s en las esquinas marcadas (antihorario).
+function pocketRing(x0, y0, x1, y1, r, cut, s) {
+  r = Math.max(0, Math.min(r, (x1 - x0) / 2 - 1e-6, (y1 - y0) / 2 - 1e-6, x1 - x0 - s - 0.5, y1 - y0 - s - 0.5));
+  const n = segFor(r), pts = [];
+  const cs = [[x1 - r, y0 + r, -90], [x1 - r, y1 - r, 0], [x0 + r, y1 - r, 90], [x0 + r, y0 + r, 180]];
+  const sharp = [[x1, y0], [x1, y1], [x0, y1], [x0, y0]];
+  const notch = [[[x1 - s, y0], [x1 - s, y0 + s], [x1, y0 + s]], [[x1, y1 - s], [x1 - s, y1 - s], [x1 - s, y1]],
+    [[x0 + s, y1], [x0 + s, y1 - s], [x0, y1 - s]], [[x0, y0 + s], [x0 + s, y0 + s], [x0 + s, y0]]];
+  cs.forEach(([cx, cy, a0], q) => {
+    if (cut[q]) pts.push(...notch[q]);
+    else if (r < 0.05) pts.push(sharp[q]);
+    else for (let i = 0; i <= n; i++) { const a = (a0 + 90 * i / n) * Math.PI / 180; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  });
+  return pts;
+}
+// Pestillo (tapa con bisagra): una lengüeta flexible delante de la pared frontal, unida a la caja solo por abajo.
+// Su gancho tiene las dos caras a 45°: al bajar la tapa la empuja hacia fuera y después la sujeta por encima.
+// Perfil en el plano YZ; la base se solapa 0,5 mm con la pared, como los nudillos.
+function clipGeom(p, L) {
+  const g = 0.6, t = 1.6, zb = 3, lap = 1, d = g + lap;
+  const z0 = L.OH + p.plate + 0.1 - g, zt = z0 + 2 * d + 0.4;
+  const R = cornerR(p, L), w = Math.min(12, L.OW - 2 * R - 4);
+  const prof = [[-g - t, 0], [0.5, 0], [0.5, zb], [-g, zb], [-g, z0], [lap, z0 + d], [lap, z0 + d + 0.4], [-g, zt], [-g - t, zt]];
+  return { prof, x0: L.OW / 2 - w / 2, x1: L.OW / 2 + w / 2, w, ok: w >= 6 && L.OH >= 12 };
+}
+function addClip(S, p, L) {
+  const K = clipGeom(p, L);
+  S.m = q => [q[2], q[0], q[1]];
+  S.cap(K.prof, [], K.x0, false); S.wall(K.prof, K.x0, K.x1, true); S.cap(K.prof, [], K.x1, true);
+  S.m = null;
+}
+
+function validate(p) {
+  const errors = [], warns = [], oks = [];
+  const L = layout(p);
+  if (!(L.IW > 1 && L.ID > 1 && L.IH > 1)) { errors.push('Las paredes y el suelo no dejan espacio dentro. Reduce el grosor o aumenta las medidas.'); return { errors, warns, oks, L }; }
+  const minX = Math.min(...L.xs.map(s => s[1] - s[0])), minY = Math.min(...L.ys.map(s => s[1] - s[0]));
+  if (minX < 2 || minY < 2) errors.push('Los huecos quedan demasiado pequeños (menos de 2 mm). Usa menos columnas o filas, o aumenta las medidas.');
+  if (L.badFr) warns.push('El reparto relativo no coincide con el número de columnas o filas, así que se reparte a partes iguales.');
+  const nz = p.nozzle;
+  const per = v => Math.round(v / nz * 100) / 100;
+  if (p.wall < 2 * nz) warns.push('La pared de ' + p.wall + ' mm tiene menos de 2 perímetros con boquilla de ' + nz + ' mm. Quedará frágil.');
+  else if (Math.abs(per(p.wall) - Math.round(per(p.wall))) > 0.15) warns.push('Con boquilla de ' + nz + ' mm, una pared de ' + (Math.round(p.wall / nz) * nz).toFixed(1) + ' mm se imprime más limpia (perímetros completos).');
+  if ((p.cols > 1 || p.rows > 1) && p.divT < 2 * nz) warns.push('Los separadores de ' + p.divT + ' mm son más finos que 2 perímetros de ' + nz + ' mm.');
+  if (p.lidType === 'skirt') {
+    if (p.tol < 0.1) warns.push('Con una holgura menor de 0,1 mm la tapa puede quedar encajada para siempre.');
+    if (p.tol > 0.5) warns.push('Con más de 0,5 mm de holgura la tapa quedará suelta.');
+    if (p.skirt > L.OH) warns.push('El borde de la tapa es más alto que la caja.');
+  }
+  if (p.lidType === 'hinge') {
+    const G = hingeGeom(p, L);
+    if (L.OH < 8) errors.push('Para la bisagra la caja necesita al menos 8 mm de alto.');
+    else if (!G.ok) errors.push('La caja es demasiado estrecha para poner la bisagra. Necesita unos 25 mm de largo útil como mínimo.');
+    else if (p.plate < 1.2) warns.push('Un plato de menos de 1,2 mm de grosor se puede alabear o romper al abrir la tapa.');
+    if (errors.length) return { errors, warns, oks, L };
+  }
+  const lt = latchOf(p), mm = v => String(+v.toFixed(1)).replace('.', ',');
+  if (lt === 'snap') {
+    const G = snapGeom(p), grip = 2 * p.snapB - p.tol;
+    if (!G.ok) errors.push('El borde que encaja es demasiado bajo para el clic. Necesita al menos ' + mm(G.minSkirt) + ' mm.');
+    else if (grip < 0.15) warns.push('Con este relieve y esta holgura el clic apenas se notará. Sube el relieve o baja la holgura.');
+    else if (grip > 0.8) warns.push('El clic será muy duro y puede rajar el borde de la tapa. Baja el relieve.');
+  }
+  if (lt === 'magnet') {
+    const M = magnetGeom(p, L);
+    if (p.plate < 1.2) errors.push('Para los imanes el plato de la tapa necesita al menos 1,2 mm.');
+    else if (M.Db > L.OH - 0.8) errors.push('La caja es demasiado baja para el hueco de los imanes.');
+    else if (M.small) errors.push('Los compartimentos de las esquinas son demasiado pequeños para la columna de los imanes. Usa imanes más pequeños o menos columnas o filas.');
+  }
+  if (lt === 'clip' && !clipGeom(p, L).ok) errors.push('Para el pestillo la caja necesita al menos 12 mm de alto y unos 25 mm de largo.');
+  if (errors.length) return { errors, warns, oks, L };
+  const wide = Math.max(L.OW, L.OD);
+  const lidMax = p.lidType !== 'none' ? lidDims(p, L) : null;
+  const need = Math.max(wide, lidMax ? Math.max(lidMax.LW, lidMax.LD) : 0);
+  if (need > p.bed) warns.push('Una pieza mide ' + need.toFixed(0) + ' mm y tu cama es de ' + p.bed + ' mm. No cabe tal cual.');
+  oks.push('Se imprime sin soportes: la caja con la boca hacia arriba' + (p.lidType !== 'none' ? ' y la tapa con el plato sobre la cama.' : '.'));
+  if (p.lidType === 'hinge') oks.push('Bisagra: imprime caja y tapa por separado y pasa un trozo de ' + (p.pin === 1.75 ? 'filamento de 1,75 mm' : 'varilla de ' + p.pin + ' mm') + ' por los nudillos.');
+  if (lt === 'snap') oks.push('Clic: baja la tapa recta y aprieta hasta que haga clic. Si queda muy dura o muy floja, ajusta el relieve.');
+  if (lt === 'magnet') {
+    const M = magnetGeom(p, L), n = M.pts.length, sz = mm(p.magD) + ' × ' + mm(p.magH) + ' mm';
+    oks.push('Imanes: ' + n + ' de ' + sz + ' en la caja y otros ' + n + ' en la tapa. Pégalos con cianoacrilato y comprueba que se atraen antes de que seque.' +
+      (M.pr > 0.05 ? ' Los de la tapa sobresalen ' + mm(M.pr) + ' mm y entran en el hueco de la caja.' : ''));
+  }
+  if (lt === 'clip') oks.push('Pestillo: para abrir, tira de la lengüeta delantera hacia fuera y levanta la tapa.');
+  return { errors, warns, oks, L };
+}
+
+function buildBox(p) {
+  const L = layout(p), S = new Soup(), lt = latchOf(p);
+  const R = cornerR(p, L);
+  const outer = roundedRect(0, 0, L.OW, L.OD, R);
+  const rp = Math.max(0, R - p.wall);
+  const M = lt === 'magnet' ? magnetGeom(p, L) : null;
+  const pockets = [], notched = [];
+  L.ys.forEach(([y0, y1], j) => L.xs.forEach(([x0, x1], i) => {
+    const rr = Math.min(rp, (x1 - x0) / 2 * 0.95, (y1 - y0) / 2 * 0.95), cut = M && magnetCuts(M, L, i, j);
+    pockets.push(cut ? pocketRing(x0, y0, x1, y1, rr, cut, M.s) : roundedRect(x0, y0, x1, y1, rr)); notched.push(!!cut);
+  }));
+  const mags = M ? M.pts.map(([x, y]) => circlePoly(x, y, M.rHole, 28)) : [];
+  S.fan(outer, 0, false);
+  if (lt === 'snap') {
+    const G = snapGeom(p), n = segFor(R), H = L.OH;
+    const ring = d => d ? roundedRect(-d, -d, L.OW + d, L.OD + d, R + d, n) : outer;
+    reliefWall(S, ring, [[0, 0], [H - G.box[1], 0], [H - (G.box[0] + G.box[1]) / 2, G.b], [H - G.box[0], 0], [H, 0]], true);
+  } else S.wall(outer, 0, L.OH, true);
+  S.cap(outer, pockets.concat(mags), L.OH, true);
+  pockets.forEach((pk, i) => { S.wall(pk, p.floor, L.OH, false); if (notched[i]) S.cap(pk, [], p.floor, true); else S.fan(pk, p.floor, true); });
+  for (const h of mags) { S.wall(h, L.OH - M.Db, L.OH, false); S.fan(h, L.OH - M.Db, true); }
+  if (p.lidType === 'hinge') addHingeBox(S, p, L);
+  if (lt === 'clip') addClip(S, p, L);
+  return S.array();
+}
+function buildHingeLid(p, L) {
+  const G = hingeGeom(p, L), S = new Soup();
+  const front = [], back = [];
+  const xc = L.OW / 2, hw = G.tabW / 2;
+  if (G.tab > 0) front.push([xc - hw, 0], [xc - hw, -G.tab], [xc + hw, -G.tab], [xc + hw, 0]);
+  const notches = G.ranges.filter(r => r.box).map(r => [r.x0 - G.gx, r.x1 + G.gx]).sort((a, b) => b[0] - a[0]);
+  for (const [a, b] of notches) back.push([b, L.OD], [b, G.yRec], [a, G.yRec], [a, L.OD]);
+  const outline = outlineWithEdits(0, 0, L.OW, L.OD, G.R, front, back);
+  const M = latchOf(p) === 'magnet' ? magnetGeom(p, L) : null; // la tapa cerrada queda justo encima: mismas x, y
+  const mags = M ? M.pts.map(([x, y]) => circlePoly(x, y, M.rHole, 28)) : [];
+  S.cap(outline, mags, 0, false); S.wall(outline, 0, p.plate, true); S.cap(outline, [], p.plate, true);
+  for (const h of mags) { S.wall(h, 0, M.Dl, false); S.fan(h, M.Dl, false); } // huecos abiertos por la cara de la cama
+  const prof = hingeLidProfile(p, L, G), hole = circlePoly(G.yc, G.Rk, G.rh, 28);
+  for (const r of G.ranges) if (!r.box) hingePrism(S, prof, hole, r.x0, r.x1, false);
+  return S.array();
+}
+function buildLid(p) {
+  if (p.lidType === 'hinge') return buildHingeLid(p, layout(p));
+  const L = layout(p), D = lidDims(p, L), S = new Soup(), lt = latchOf(p);
+  const R = cornerR(p, L);
+  const outer = roundedRect(0, 0, D.LW, D.LD, R + D.e);
+  const inner = roundedRect(p.wall, p.wall, D.LW - p.wall, D.LD - p.wall, R + p.tol);
+  S.fan(outer, 0, false);
+  S.wall(outer, 0, D.LH, true);
+  S.cap(outer, [inner], D.LH, true);
+  if (lt === 'snap') {
+    const G = snapGeom(p), n = segFor(R + p.tol), z = p.plate, w = p.wall;
+    const ring = d => d ? roundedRect(w + d, w + d, D.LW - w - d, D.LD - w - d, R + p.tol - d, n) : inner;
+    reliefWall(S, ring, [[z, 0], [z + G.lid[0], 0], [z + (G.lid[0] + G.lid[1]) / 2, G.b], [z + G.lid[1], 0], [D.LH, 0]], false);
+  } else S.wall(inner, p.plate, D.LH, false);
+  if (lt === 'magnet') { // las esquinas son simétricas, así que al dar la vuelta a la tapa los huecos caen igual
+    const M = magnetGeom(p, L), mags = M.pts.map(([x, y]) => circlePoly(D.e + x, D.e + y, M.rHole, 28)), zf = p.plate - M.Dl;
+    S.cap(inner, mags, p.plate, true);
+    for (const h of mags) { S.wall(h, zf, p.plate, false); S.fan(h, zf, true); }
+  } else S.fan(inner, p.plate, true);
+  return S.array();
+}
+
+function soupVolume(a) {
+  let v = 0;
+  for (let i = 0; i < a.length; i += 9) {
+    const ax = a[i], ay = a[i + 1], az = a[i + 2], bx = a[i + 3], by = a[i + 4], bz = a[i + 5], cx = a[i + 6], cy = a[i + 7], cz = a[i + 8];
+    v += (ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx)) / 6;
+  }
+  return v;
+}
+function soupToStl(a, name) {
+  const n = a.length / 9, buf = new ArrayBuffer(84 + 50 * n), dv = new DataView(buf);
+  const head = (name || 'caja') + ' - generado en el navegador';
+  for (let i = 0; i < Math.min(79, head.length); i++) dv.setUint8(i, head.charCodeAt(i) & 127);
+  dv.setUint32(80, n, true);
+  let o = 84;
+  for (let i = 0; i < n; i++) {
+    const k = i * 9;
+    const ux = a[k + 3] - a[k], uy = a[k + 4] - a[k + 1], uz = a[k + 5] - a[k + 2];
+    const vx = a[k + 6] - a[k], vy = a[k + 7] - a[k + 1], vz = a[k + 8] - a[k + 2];
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+    dv.setFloat32(o, nx, true); dv.setFloat32(o + 4, ny, true); dv.setFloat32(o + 8, nz, true); o += 12;
+    for (let j = 0; j < 9; j++) { dv.setFloat32(o, a[k + j], true); o += 4; }
+    dv.setUint16(o, 0, true); o += 2;
+  }
+  return new Uint8Array(buf);
+}
+
+// ZIP sin compresión (los STL ya van en binario). Se usa porque el visor solo deja guardar ciertas extensiones.
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), locals = [], centrals = []; let off = 0;
+  for (const f of files) {
+    const nb = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, 0, true); lh.setUint16(12, 33, true); lh.setUint32(14, crc, true); lh.setUint32(18, size, true); lh.setUint32(22, size, true);
+    lh.setUint16(26, nb.length, true); lh.setUint16(28, 0, true);
+    locals.push(new Uint8Array(lh.buffer), nb, f.data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, 0, true); ch.setUint16(14, 33, true); ch.setUint32(16, crc, true); ch.setUint32(20, size, true); ch.setUint32(24, size, true);
+    ch.setUint16(28, nb.length, true); ch.setUint32(42, off, true);
+    centrals.push(new Uint8Array(ch.buffer), nb);
+    off += 30 + nb.length + size;
+  }
+  let cs = 0; for (const c of centrals) cs += c.length;
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, cs, true); end.setUint32(16, off, true);
+  const parts = [...locals, ...centrals, new Uint8Array(end.buffer)];
+  let total = 0; for (const x of parts) total += x.length;
+  const out = new Uint8Array(total); let o = 0;
+  for (const x of parts) { out.set(x, o); o += x.length; }
+  return out;
+}
+// ==CORE-END==
+
+(function () {
+  const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
+  const fmt = (n, d) => n.toLocaleString('es-ES', { maximumFractionDigits: d == null ? 1 : d });
+  const COLORS = ['#d3d0c6', '#2f6fb0', '#d9482b', '#2f9b63', '#2b2f33'];
+  const PRESETS = [
+    { name: 'Tornillos y tuercas', v: { mode: 'outer', W: 150, D: 100, H: 35, cols: 4, rows: 3, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 4, lidType: 'skirt', latch: 'none' } },
+    { name: 'Tarjetas SD', v: { mode: 'outer', W: 90, D: 60, H: 25, cols: 3, rows: 2, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 3, lidType: 'skirt', latch: 'none' } },
+    { name: 'Bandeja de mesa', v: { mode: 'outer', W: 200, D: 100, H: 40, cols: 2, rows: 1, colFr: '2,1', rowFr: '', divT: 1.6, wall: 1.6, floor: 1.6, corner: 8, lidType: 'none', latch: 'none' } },
+    { name: 'Caja simple', v: { mode: 'outer', W: 100, D: 100, H: 50, cols: 1, rows: 1, colFr: '', rowFr: '', divT: 1.2, wall: 2, floor: 2, corner: 8, lidType: 'skirt', latch: 'none' } },
+    { name: 'Joyero con bisagra', v: { mode: 'outer', W: 90, D: 60, H: 30, cols: 2, rows: 1, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 6, lidType: 'hinge', latch: 'magnet' } },
+  ];
+  const S = Object.assign({ tol: 0.25, plate: 2, skirt: 6, pin: 1.75, knuckles: 0, latch: 'none', snapB: 0.3, magD: 6, magH: 2, open: 55, bed: 256, nozzle: 0.4, color: COLORS[0], show: 'box' }, PRESETS[0].v);
+  try { const raw = localStorage.getItem('cajas-a-medida'); if (raw) Object.assign(S, JSON.parse(raw)); } catch (e) {}
+  if ('lid' in S) { S.lidType = S.lid === false ? 'none' : (S.lidType || 'skirt'); delete S.lid; }
+  if (!['skirt', 'hinge', 'none'].includes(S.lidType)) S.lidType = 'skirt';
+
+  let boxSoup = null, lidSoup = null, info = null, dirty = false;
+
+  // ---------- Entradas ----------
+  function writeInputs() {
+    for (const el of $$('[data-k]')) { const k = el.dataset.k; if (k in S) el.value = S[k]; }
+    for (const b of $$('[data-seg]')) b.setAttribute('aria-pressed', String(segValue(b.dataset.seg) === b.dataset.v));
+    $$('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === S.color)));
+    $('#Hlabel').textContent = S.mode === 'inner' ? 'Profundidad (Z)' : 'Alto (Z)';
+    const lt = S.lidType;
+    $('#lidFields').hidden = lt === 'none'; $('#lidHint').hidden = lt === 'none';
+    for (const l of $$('#lidFields [data-for]')) l.hidden = !l.dataset.for.split(' ').includes(lt);
+    $('#lidHint').textContent = lt === 'hinge'
+      ? 'Caja y tapa se imprimen por separado, con nudillos que encajan entre sí. Pasa un trozo de filamento por el agujero y la tapa gira. La lengüeta delantera sirve para abrirla.'
+      : 'La tapa abraza la caja por fuera, como una caja de zapatos. Con 0,25 mm de holgura entra a presión en la mayoría de impresoras.';
+    const fits = { none: true, snap: lt === 'skirt', magnet: lt !== 'none', clip: lt === 'hinge' };
+    for (const o of $('#latch').options) { o.hidden = o.disabled = !fits[o.value]; }
+    if (!fits[S.latch]) S.latch = 'none';
+    $('#latch').value = S.latch;
+    $('#latchRow').hidden = lt === 'none'; $('#latchHint').hidden = lt === 'none' || S.latch === 'none';
+    for (const l of $$('#latchRow [data-latch]')) l.hidden = l.dataset.latch !== S.latch;
+    $('#latchHint').textContent = {
+      none: '',
+      snap: 'Un cordón alrededor de la caja y otro dentro del borde de la tapa: al cerrarla hace clic. Más relieve, más duro.',
+      magnet: 'Columnas en las esquinas de la caja con huecos para imanes de disco, y los huecos gemelos en la tapa' + (lt === 'hinge' ? ' (solo delante, lejos de la bisagra).' : '.'),
+      clip: 'Una lengüeta flexible delante de la caja engancha la tapa al cerrarla. Sustituye a la pestaña de la tapa: para abrir, tira de la lengüeta.',
+    }[S.latch];
+    $('#tabLid').hidden = lt === 'none'; $('#tabBoth').hidden = lt === 'none';
+    if (lt === 'none' && S.show !== 'box') S.show = 'box';
+  }
+  function segValue(k) { return k === 'lid' ? S.lidType : S[k]; }
+  function readInput(el) {
+    const k = el.dataset.k;
+    if (el.type === 'text' || 'str' in el.dataset) S[k] = el.value;
+    else if (el.tagName === 'SELECT') S[k] = parseFloat(el.value);
+    else { const v = parseFloat(el.value); S[k] = isFinite(v) ? v : NaN; }
+  }
+  for (const el of $$('[data-k]')) el.addEventListener('input', () => { readInput(el); if (el.id === 'latch') writeInputs(); schedule(); });
+  for (const b of $$('[data-seg]')) b.addEventListener('click', () => {
+    const k = b.dataset.seg, v = b.dataset.v;
+    if (k === 'lid') S.lidType = v; else S[k] = v;
+    writeInputs(); if (k === 'show') { applyShow(); fit(); } else schedule();
+  });
+  PRESETS.forEach((pr, i) => {
+    const c = document.createElement('button'); c.type = 'button'; c.className = 'chip'; c.textContent = pr.name;
+    c.addEventListener('click', () => { Object.assign(S, pr.v); if (S.lidType === 'none') S.show = 'box'; writeInputs(); schedule(true); });
+    $('#presets').appendChild(c);
+  });
+  COLORS.forEach(c => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.style.background = c; b.dataset.c = c; b.setAttribute('aria-label', 'Color ' + c);
+    b.addEventListener('click', () => { S.color = c; writeInputs(); applyColor(); render(); persist(); });
+    $('#swatches').appendChild(b);
+  });
+  function persist() { try { localStorage.setItem('cajas-a-medida', JSON.stringify(S)); } catch (e) {} }
+
+  // ---------- Modelo ----------
+  let timer = 0, refit = false;
+  function schedule(force) { refit = refit || !!force; if (timer) return; timer = requestAnimationFrame(() => { timer = 0; rebuild(); }); }
+  function params() {
+    const p = { mode: S.mode, W: S.W, D: S.D, H: S.H, cols: Math.round(S.cols), rows: Math.round(S.rows), colFr: S.colFr, rowFr: S.rowFr,
+      divT: S.divT, wall: S.wall, floor: S.floor, corner: S.corner, lidType: S.lidType, tol: S.tol, plate: S.plate, skirt: S.skirt, pin: S.pin, knuckles: S.knuckles, bed: S.bed, nozzle: S.nozzle,
+      latch: S.latch, snapB: S.snapB, magD: S.magD, magH: S.magH };
+    const lt = latchOf(p);
+    const nums = ['W', 'D', 'H', 'cols', 'rows', 'divT', 'wall', 'floor', 'corner'].concat(p.lidType === 'skirt' ? ['tol', 'plate', 'skirt'] : p.lidType === 'hinge' ? ['plate', 'pin', 'knuckles'] : [],
+      lt === 'snap' ? ['snapB'] : lt === 'magnet' ? ['magD', 'magH'] : []);
+    for (const k of nums) if (!isFinite(p[k])) return null;
+    if ((lt === 'snap' && (p.snapB < 0.1 || p.snapB > 1)) || (lt === 'magnet' && (p.magD < 2 || p.magD > 20 || p.magH < 0.5 || p.magH > 10))) return null;
+    if (p.W < 5 || p.D < 5 || p.H < 3 || p.cols < 1 || p.rows < 1 || p.cols > 12 || p.rows > 12) return null;
+    if (p.divT < 0.2 || p.wall < 0.2 || p.floor < 0.2 || p.corner < 0 || (p.lidType === 'skirt' && (p.tol < 0 || p.plate < 0.4 || p.skirt < 1)) || (p.lidType === 'hinge' && p.plate < 0.4)) return null;
+    return p;
+  }
+  function rebuild() {
+    const p = params(), msgs = [];
+    let ok = false;
+    if (!p) msgs.push(['err', 'Revisa los campos: hay un valor vacío o fuera de rango.']);
+    else {
+      const v = validate(p);
+      v.errors.forEach(m => msgs.push(['err', m]));
+      v.warns.forEach(m => msgs.push(['warn', m]));
+      if (!v.errors.length) {
+        boxSoup = buildBox(p); lidSoup = p.lidType !== 'none' ? buildLid(p) : null; info = { p, L: v.L, D: p.lidType !== 'none' ? lidDims(p, v.L) : null, G: p.lidType === 'hinge' ? hingeGeom(p, v.L) : null };
+        v.oks.forEach(m => msgs.push(['ok', m])); ok = true;
+      }
+    }
+    $('#msgs').innerHTML = ''; msgs.forEach(([c, m]) => { const li = document.createElement('li'); li.className = c; li.textContent = m; $('#msgs').appendChild(li); });
+    $('#dl').disabled = !ok;
+    if (ok) { readout(); updateMeshes(); persist(); } else { $('#readout').textContent = ''; }
+    $('#status').textContent = '';
+  }
+  function readout() {
+    const { p, L, D } = info;
+    const vol = Math.abs(soupVolume(boxSoup)) + (lidSoup ? Math.abs(soupVolume(lidSoup)) : 0);
+    const g = vol / 1000 * 1.24;
+    const sx = L.xs.map(s => s[1] - s[0]), sy = L.ys.map(s => s[1] - s[0]);
+    const mnx = Math.min(...sx), mxx = Math.max(...sx), mny = Math.min(...sy), mxy = Math.max(...sy);
+    const same = (mxx - mnx < 0.05 && mxy - mny < 0.05);
+    const hole = same ? fmt(mnx) + ' × ' + fmt(mny) : fmt(mnx) + '–' + fmt(mxx) + ' × ' + fmt(mny) + '–' + fmt(mxy);
+    const rows = [
+      ['Caja', fmt(L.OW) + ' × ' + fmt(L.OD) + ' × ' + fmt(L.OH) + ' mm'],
+      ['Cada hueco', hole + ' × ' + fmt(L.IH) + ' mm'],
+    ];
+    if (D) rows.push(['Tapa', fmt(D.LW) + ' × ' + fmt(D.LD) + ' × ' + fmt(D.LH) + ' mm']);
+    if (info.G) rows.push(['Pasador', 'Ø ' + fmt(p.pin, 2) + ' mm × ' + fmt(Math.floor(info.G.Lh - 1.5), 0) + ' mm (entra por la izquierda; el otro extremo es ciego)']);
+    const lt = latchOf(p);
+    if (lt === 'snap') rows.push(['Cierre', 'clic, cordones de ' + fmt(p.snapB, 2) + ' mm (aprieta ' + fmt(2 * p.snapB - p.tol, 2) + ' mm)']);
+    if (lt === 'magnet') { const M = magnetGeom(p, L); rows.push(['Imanes', fmt(2 * M.pts.length, 0) + ' de Ø ' + fmt(p.magD) + ' × ' + fmt(p.magH) + ' mm (' + M.pts.length + ' en la caja y ' + M.pts.length + ' en la tapa)']); }
+    if (lt === 'clip') rows.push(['Cierre', 'pestillo delantero de ' + fmt(clipGeom(p, L).w, 0) + ' mm']);
+    rows.push(['Material', fmt(vol / 1000) + ' cm³ · unos ' + fmt(g, 0) + ' g de PLA al 100 %']);
+    $('#readout').innerHTML = '';
+    for (const [k, v] of rows) { const d = document.createElement('div'); const s = document.createElement('span'); s.textContent = k + '  '; d.appendChild(s); d.appendChild(document.createTextNode(v)); $('#readout').appendChild(d); }
+  }
+
+  // ---------- Vista 3D ----------
+  let T = null; // { renderer, scene, camera, group, boxMesh, lidMesh, plate, dir, ... }
+  const orbit = { az: -0.62, el: 0.52, dist: 300, tx: 0, ty: 0, tz: 0 };
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function initThree() {
+    try {
+      if (!window.THREE) throw new Error('three');
+      const canvas = $('#cv');
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(32, 1, 1, 5000); camera.up.set(0, 0, 1);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.55));
+      const dir = new THREE.DirectionalLight(0xffffff, 0.6); scene.add(dir); scene.add(dir.target);
+      const group = new THREE.Group(); scene.add(group);
+      const lidPivot = new THREE.Group(); group.add(lidPivot);
+      T = { renderer, scene, camera, group, lidPivot, dir, boxMesh: null, lidMesh: null, plate: null, w: 0, h: 0 };
+      new ResizeObserver(resize).observe($('#stage'));
+      bindOrbit(canvas);
+      return true;
+    } catch (e) { T = null; $('#nogl').hidden = false; $('#stageNote').hidden = true; return false; }
+  }
+  function resize() {
+    if (!T) return;
+    const st = $('#stage'), w = st.clientWidth, h = st.clientHeight; if (!w || !h) return;
+    T.renderer.setSize(w, h, false); T.camera.aspect = w / h; T.camera.updateProjectionMatrix(); T.w = w; T.h = h; render();
+  }
+  function meshFrom(soup) {
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(soup, 3)); g.computeVertexNormals();
+    return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: S.color, roughness: 0.6, metalness: 0.0 }));
+  }
+  function applyColor() { if (T) for (const m of [T.boxMesh, T.lidMesh]) if (m) m.material.color.set(S.color); }
+  function updateMeshes() {
+    if (!T) return;
+    for (const k of ['boxMesh', 'lidMesh']) { if (T[k]) { (k === 'lidMesh' ? T.lidPivot : T.group).remove(T[k]); T[k].geometry.dispose(); T[k].material.dispose(); T[k] = null; } }
+    T.boxMesh = meshFrom(boxSoup); T.group.add(T.boxMesh);
+    if (lidSoup) { T.lidMesh = meshFrom(lidSoup); T.lidPivot.add(T.lidMesh); }
+    applyShow();
+    const key = [info.L.OW, info.L.OD, info.L.OH, S.bed].join('/');
+    const first = !T.key; const changed = T.key !== key; T.key = key;
+    makePlate();
+    if (first || refit || changed) { fit(); refit = false; } else render();
+  }
+  function applyShow() {
+    if (!T || !info) return;
+    const { L, D, G } = info, show = S.show, piv = T.lidPivot, lm = T.lidMesh;
+    if (T.boxMesh) T.boxMesh.visible = show === 'box' || show === 'both';
+    piv.position.set(0, 0, 0); piv.rotation.set(0, 0, 0);
+    piv.visible = !!lm && (show === 'lid' || show === 'both');
+    if (lm) {
+      lm.rotation.set(0, 0, 0); lm.position.set(0, 0, 0);
+      if (G) {
+        if (show === 'both') { // tapa en su sitio, girando sobre el eje de la bisagra
+          piv.position.set(0, G.yc, G.zc); lm.position.set(0, -G.yc, L.OH - G.zc); piv.rotation.x = -S.open * Math.PI / 180;
+        } else if (show === 'lid') { lm.position.set(0, L.OD / 2 - (D.yMin + D.yMax) / 2, 0); }
+      } else if (show === 'both') { // tapa girada sobre la caja, separada para ver el encaje
+        lm.rotation.x = Math.PI;
+        lm.position.set(L.OW / 2 - D.LW / 2, L.OD / 2 + D.LD / 2, L.OH + 14 + D.LH);
+      } else if (show === 'lid') {
+        lm.position.set(L.OW / 2 - D.LW / 2, L.OD / 2 - D.LD / 2, 0);
+      }
+    }
+    $('#openWrap').hidden = !(G && show === 'both');
+    makePlate();
+  }
+  function makePlate() {
+    if (!T || !info) return;
+    if (T.plate) { T.scene.remove(T.plate); T.plate.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }
+    const bed = info.p.bed, plate = new THREE.Group();
+    const g = new THREE.GridHelper(bed, Math.round(bed / 10), new THREE.Color(css('--grid')), new THREE.Color(css('--grid2')));
+    g.rotation.x = Math.PI / 2; g.position.z = -0.05; plate.add(g);
+    const h = bed / 2, over = Math.max(info.L.OW, info.L.OD, info.D ? Math.max(info.D.LW, info.D.LD) : 0) > bed;
+    const o = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([[-h, -h], [h, -h], [h, h], [-h, h]].map(a => new THREE.Vector3(a[0], a[1], 0))),
+      new THREE.LineBasicMaterial({ color: new THREE.Color(over ? css('--bad') : css('--accent')) }));
+    plate.add(o);
+    plate.position.set(info.L.OW / 2, info.L.OD / 2, 0);
+    T.plate = plate; T.scene.add(plate);
+    T.renderer.setClearColor(new THREE.Color(css('--stage')), 1);
+  }
+  function fit() {
+    if (!T || !info) return;
+    const box = new THREE.Box3();
+    T.group.children.forEach(m => { if (m.visible) { m.updateMatrixWorld(true); box.expandByObject(m); } });
+    if (box.isEmpty()) return;
+    const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+    const vf = T.camera.fov * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * (T.camera.aspect || 1));
+    orbit.tx = c.x; orbit.ty = c.y; orbit.tz = c.z; orbit.dist = r / Math.sin(Math.min(vf, hf) / 2) * 1.05;
+    render();
+  }
+  function render() {
+    if (!T) return;
+    const { az, el, dist } = orbit;
+    T.camera.position.set(orbit.tx + dist * Math.cos(el) * Math.cos(az), orbit.ty + dist * Math.cos(el) * Math.sin(az), orbit.tz + dist * Math.sin(el));
+    T.camera.lookAt(orbit.tx, orbit.ty, orbit.tz);
+    T.dir.position.set(T.camera.position.x + dist * 0.4, T.camera.position.y - dist * 0.3, T.camera.position.z + dist * 0.8);
+    T.dir.target.position.set(orbit.tx, orbit.ty, orbit.tz);
+    T.renderer.render(T.scene, T.camera);
+  }
+  function bindOrbit(canvas) {
+    const pts = new Map(); let last = 0;
+    canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); last = pts.size === 2 ? pinch() : 0; });
+    const pinch = () => { const a = Array.from(pts.values()); return Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]); };
+    canvas.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId)) return;
+      const p = pts.get(e.pointerId), dx = e.clientX - p[0], dy = e.clientY - p[1];
+      pts.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pts.size === 1) { orbit.az -= dx * 0.008; orbit.el = Math.max(-0.05, Math.min(1.5, orbit.el + dy * 0.008)); }
+      else if (pts.size === 2) { const d = pinch(); if (last) orbit.dist = Math.max(20, Math.min(3000, orbit.dist * last / d)); last = d; }
+      render();
+    });
+    const up = e => { pts.delete(e.pointerId); last = 0; };
+    canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('wheel', e => { e.preventDefault(); orbit.dist = Math.max(20, Math.min(3000, orbit.dist * Math.exp(e.deltaY * 0.0012))); render(); }, { passive: false });
+  }
+  $('#fit').addEventListener('click', fit);
+  $('#open').addEventListener('input', e => { S.open = parseFloat(e.target.value) || 0; applyShow(); render(); persist(); });
+  new MutationObserver(() => { makePlate(); render(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { makePlate(); render(); });
+
+  // ---------- Descarga ----------
+  function nameBase() { const L = info.L; return 'caja_' + Math.round(L.OW) + 'x' + Math.round(L.OD) + 'x' + Math.round(L.OH); }
+  async function download() {
+    if (!info) return;
+    const base = nameBase(), files = [{ name: base + '.stl', data: soupToStl(boxSoup, base) }];
+    if (lidSoup) files.push({ name: base + '_tapa.stl', data: soupToStl(lidSoup, base + ' tapa') });
+    const status = $('#status');
+    let dls = null;
+    try { dls = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dls = null; }
+    if (dls) {
+      try {
+        const zip = makeZip(files);
+        const r = await dls.save({ filename: base + '.zip', data: new Blob([zip], { type: 'application/zip' }) });
+        status.textContent = r.status === 'saved' ? 'Guardado ' + base + '.zip con ' + files.length + (files.length > 1 ? ' archivos STL (caja y tapa). Descomprímelo y abre los STL en tu laminador.' : ' archivo STL. Descomprímelo y ábrelo en tu laminador.') : 'Enviado.';
+      } catch (e) {
+        status.textContent = e && e.code === 'declined' ? 'Descarga cancelada.' : 'No se pudo guardar el archivo en esta vista.';
+      }
+      return;
+    }
+    // Fuera del visor (página abierta como archivo): descarga directa de cada STL.
+    files.forEach((f, i) => setTimeout(() => {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([f.data], { type: 'model/stl' })); a.download = f.name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }, i * 400));
+    status.textContent = 'Descargando ' + files.map(f => f.name).join(' y ') + '.';
+  }
+  $('#dl').addEventListener('click', download);
+
+  $('#open').value = S.open;
+  writeInputs(); initThree(); rebuild(); resize();
+  window.__cajas = { S, get info() { return info; } };
+})();
+</script>
