@@ -2,7 +2,7 @@ import fs from 'fs'; import earcut from 'earcut'; import {execSync} from 'child_
 globalThis.earcut = earcut;
 const html = fs.readFileSync(new URL('../index.html', import.meta.url),'utf8');
 const core = html.split('// ==CORE-START==')[1].split('// ==CORE-END==')[0];
-const names='roundedRect polyArea Soup layout lidDims validate buildBox buildLid soupVolume soupToStl makeZip crc32 parseFractions hingeGeom hingeBoxProfile hingeLidProfile circlePoly convexHull latchOf snapGeom magnetGeom clipGeom traceMask nestLoops labelGeom sideLabels'.split(' ');
+const names='designOf designApply designCode designParse roundedRect polyArea Soup layout lidDims validate buildBox buildLid soupVolume soupToStl makeZip crc32 parseFractions hingeGeom hingeBoxProfile hingeLidProfile circlePoly convexHull latchOf snapGeom magnetGeom clipGeom traceMask nestLoops labelGeom sideLabels'.split(' ');
 fs.writeFileSync('core.mjs', core + '\nexport {'+names.join(',')+'};');
 const C = await import('./core.mjs?'+Date.now());
 let fail=0; const ok=(c,m)=>{console.log((c?'OK   ':'FAIL ')+m); if(!c) fail++;};
@@ -117,4 +117,21 @@ ok(C.validate({...base,colFr:'1,2'}).warns.some(w=>/reparto/.test(w)),'aviso rep
 // zip
 const z=C.makeZip([{name:'a.stl',data:new Uint8Array([1,2,3,4,5])},{name:'b_tapa.stl',data:C.soupToStl(C.buildLid(base),'x')}]);
 fs.writeFileSync('out/t.zip',z); const u=execSync('unzip -t out/t.zip 2>&1').toString(); ok(/No errors detected/.test(u),'zip válido\n'+u);
+// diseños guardados
+{
+ const defs={...base,latch:'none',snapB:0.3,magD:6,magH:2,text:'',font:'sans',labelSize:12,labelMode:'emboss',labelDepth:0.6,color:'#d3d0c6'};
+ const S={...defs,W:123.5,lidType:'hinge',latch:'magnet',text:'TORNILLOS 🔩\nM3',font:'serif',labelOn:{lid:false,front:true},color:'#2f6fb0',show:'both',open:40};
+ const d=C.designOf(S), back=C.designApply(C.designParse(C.designCode(d)),defs);
+ const same=Object.keys(back).every(k=>JSON.stringify(back[k])===JSON.stringify(S[k]));
+ ok(same && !('show' in back) && !('open' in back),'diseño: código -> mismos parámetros (con emojis y saltos de línea)');
+ ok(JSON.stringify(C.designApply(C.designParse('https://x.test/caja.html#d='+C.designCode(d)),defs))===JSON.stringify(back),'diseño: se lee desde un enlace');
+ ok(JSON.stringify(C.designApply(C.designParse(JSON.stringify(d,null,2)),defs))===JSON.stringify(back),'diseño: se lee desde el JSON exportado');
+ const old=C.designApply({app:'cajas-a-medida',v:1,W:80,lidType:'tapa rara',cols:'3',color:'red',futuro:1},defs);
+ ok(old.W===80&&old.lidType==='skirt'&&old.cols===defs.cols&&old.color==='#d3d0c6'&&old.text===''&&!('futuro' in old),'diseño: campos que faltan o inválidos -> valores por defecto');
+ let bad=0; for(const x of [{v:1},null,'hola',{app:'cajas-a-medida'}]) try{C.designApply(x,defs)}catch(e){bad++}
+ ok(bad===4,'diseño: lo que no es un diseño se rechaza');
+ let badc=0; for(const x of ['no es código!','https://x.test/#d=@@']) try{C.designParse(x)}catch(e){badc++}
+ ok(badc===2,'diseño: códigos inválidos se rechazan');
+ ok(!C.validate({...C.designApply(d,defs),pin:1.75,knuckles:0,tol:0.25,plate:2,skirt:6,bed:256,nozzle:0.4}).errors.length,'diseño abierto se valida sin errores');
+}
 console.log(fail?'HAY FALLOS '+fail:'Todas las pruebas pasan'); process.exit(fail?1:0);

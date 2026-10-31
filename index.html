@@ -102,6 +102,16 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .msgs li.ok { color: var(--muted); }
 .msgs li.ok::before { background: var(--accent); }
 .status { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0; }
+.saves .count { color: var(--muted); font-weight: 400; }
+.saverow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.saverow .btn { padding: 8px 16px; width: auto; }
+.savelist { list-style: none; margin: 0; padding: 0; display: grid; }
+.savelist:empty { display: none; }
+.savelist li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+.savelist li:first-child { border-top: 0; }
+.savelist b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.savelist small { color: var(--muted); font: 400 0.74rem var(--mono); }
+.savelist .chip.del[data-armed] { border-color: var(--bad); color: var(--bad); }
 @media (max-width: 860px) {
   .wrap { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "view" "controls"; }
   .view { position: static; }
@@ -125,7 +135,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
     <section>
       <h2>Empieza por un modelo</h2>
       <div class="chips" id="presets"></div>
-      <p class="hint">O ajusta tú las medidas. Todo se guarda en este navegador.</p>
+      <p class="hint">O ajusta tú las medidas. Lo último que hagas se recuerda en este navegador; para guardar varios, usa «Mis diseños».</p>
     </section>
 
     <section>
@@ -267,6 +277,25 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
       </div>
     </div>
     <p class="status" id="status" role="status"></p>
+    <details class="saves" id="saves">
+      <summary>Mis diseños <span class="count" id="savesCount"></span></summary>
+      <div class="saverow">
+        <label class="f">Nombre del diseño<span class="in"><input id="saveName" type="text" maxlength="60" placeholder="Caja de tornillos"></span></label>
+        <button type="button" class="btn alt" id="saveBtn">Guardar</button>
+      </div>
+      <ul class="savelist" id="saveList"></ul>
+      <p class="hint">Se guardan en este navegador. Para abrirlos en otro dispositivo o pasárselos a alguien, copia el <span id="codeWord">enlace</span> o exporta el archivo. La descarga de los STL también lleva el archivo del diseño.</p>
+      <div class="chips">
+        <button type="button" class="chip" id="copyCode">Copiar enlace</button>
+        <button type="button" class="chip" id="exportBtn">Exportar .json</button>
+        <button type="button" class="chip" id="importBtn">Importar .json</button>
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+      </div>
+      <div class="saverow">
+        <label class="f">Abrir un enlace o código<span class="in"><input id="pasteCode" type="text" placeholder="Pega aquí"></span></label>
+        <button type="button" class="btn alt" id="pasteBtn">Abrir</button>
+      </div>
+    </details>
   </div>
 </div>
 
@@ -905,6 +934,45 @@ function makeZip(files) {
   for (const x of parts) { out.set(x, o); o += x.length; }
   return out;
 }
+
+// Diseño guardado: solo los parámetros, con versión. Al abrirlo se toma de cada campo lo que tenga el tipo esperado
+// y lo demás sale de los valores por defecto, así los diseños viejos siguen abriéndose cuando se añaden opciones.
+const DESIGN_V = 1;
+const DESIGN_KEYS = ['mode', 'W', 'D', 'H', 'cols', 'rows', 'colFr', 'rowFr', 'divT', 'wall', 'floor', 'corner', 'lidType', 'tol', 'plate', 'skirt', 'pin', 'knuckles',
+  'latch', 'snapB', 'magD', 'magH', 'text', 'font', 'labelSize', 'labelMode', 'labelDepth', 'labelOn', 'bed', 'nozzle', 'color'];
+const DESIGN_ENUMS = { mode: ['outer', 'inner'], lidType: ['skirt', 'hinge', 'none'], latch: ['none', 'snap', 'magnet', 'clip'], labelMode: ['emboss', 'engrave'],
+  font: ['sans', 'round', 'serif', 'mono', 'script'] };
+function designOf(S) { const d = { app: 'cajas-a-medida', v: DESIGN_V }; for (const k of DESIGN_KEYS) if (S[k] !== undefined) d[k] = S[k]; return d; }
+function designApply(d, base) {
+  if (!d || typeof d !== 'object' || d.app !== 'cajas-a-medida' || !(d.v >= 1)) throw new Error('No es un diseño de Cajas a medida.');
+  const out = {};
+  for (const k of DESIGN_KEYS) {
+    const v = d[k], b = base[k];
+    if (k === 'labelOn') {
+      out.labelOn = {};
+      if (v && typeof v === 'object') for (const s of ['lid', 'front', 'back', 'left', 'right']) if (s in v) out.labelOn[s] = !!v[s];
+    } else if (DESIGN_ENUMS[k]) out[k] = DESIGN_ENUMS[k].includes(v) ? v : b;
+    else if (k === 'color') out[k] = typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v : b;
+    else if (typeof b === 'number') out[k] = typeof v === 'number' && isFinite(v) ? v : b;
+    else out[k] = typeof v === 'string' ? v.slice(0, 500) : b;
+  }
+  return out;
+}
+// Código para enlaces: JSON en UTF-8 y base64url (los emojis del texto pasan sin problemas).
+function designCode(d) {
+  let s = ''; for (const c of new TextEncoder().encode(JSON.stringify(d))) s += String.fromCharCode(c);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+// Acepta un enlace con #d=…, el código suelto o el JSON exportado.
+function designParse(str) {
+  str = String(str || '').trim();
+  if (str[0] === '{') return JSON.parse(str);
+  const m = str.match(/[#&?]d=([A-Za-z0-9_-]+)/); if (m) str = m[1];
+  if (!/^[A-Za-z0-9_-]+$/.test(str)) throw new Error('No es un código de diseño.');
+  const b = atob(str.replace(/-/g, '+').replace(/_/g, '/')), u8 = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i);
+  return JSON.parse(new TextDecoder().decode(u8));
+}
 // ==CORE-END==
 
 (function () {
@@ -919,7 +987,15 @@ function makeZip(files) {
     { name: 'Joyero con bisagra', v: { mode: 'outer', W: 90, D: 60, H: 30, cols: 2, rows: 1, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 6, lidType: 'hinge', latch: 'magnet' } },
   ];
   const S = Object.assign({ tol: 0.25, plate: 2, skirt: 6, pin: 1.75, knuckles: 0, latch: 'none', snapB: 0.3, magD: 6, magH: 2, text: '', font: 'sans', labelSize: 12, labelMode: 'emboss', labelDepth: 0.6, open: 55, bed: 256, nozzle: 0.4, color: COLORS[0], show: 'box' }, PRESETS[0].v);
+  const DEFAULTS = Object.assign({}, S);
   try { const raw = localStorage.getItem('cajas-a-medida'); if (raw) Object.assign(S, JSON.parse(raw)); } catch (e) {}
+  let note = ''; // aviso que se muestra tras el siguiente rebuild
+  // Un enlace con #d=… abre ese diseño; luego se quita del enlace para que no quede desfasado al seguir editando.
+  if (/^#d=/.test(location.hash)) {
+    try { Object.assign(S, designApply(designParse(location.hash), DEFAULTS)); note = 'Diseño abierto desde el enlace.'; }
+    catch (e) { note = 'El enlace no contiene un diseño válido.'; }
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  }
   if ('lid' in S) { S.lidType = S.lid === false ? 'none' : (S.lidType || 'skirt'); delete S.lid; }
   if (!['skirt', 'hinge', 'none'].includes(S.lidType)) S.lidType = 'skirt';
 
@@ -1092,7 +1168,7 @@ function makeZip(files) {
       $('#cellHint').textContent = n === 1 ? 'Un solo hueco de ' + fmt(w[0]) + ' × ' + fmt(d[0]) + ' mm.' :
         n + ' huecos' + (same ? ' de ' + fmt(w[0]) + ' × ' + fmt(d[0]) + ' mm' : ' de distintos tamaños') + ', ' + fmt(L.IH) + ' mm de hondo.';
     }
-    $('#status').textContent = '';
+    $('#status').textContent = note; note = '';
   }
   function readout() {
     const { p, L, D } = info;
@@ -1246,14 +1322,15 @@ function makeZip(files) {
     if (!info) return;
     const base = nameBase(), files = [{ name: base + '.stl', data: soupToStl(boxSoup, base) }];
     if (lidSoup) files.push({ name: base + '_tapa.stl', data: soupToStl(lidSoup, base + ' tapa') });
+    const nStl = files.length;
     const status = $('#status');
     let dls = null;
     try { dls = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dls = null; }
     if (dls) {
       try {
-        const zip = makeZip(files);
+        const zip = makeZip(files.concat([{ name: base + '_diseño.json', data: new TextEncoder().encode(designJson()) }]));
         const r = await dls.save({ filename: base + '.zip', data: new Blob([zip], { type: 'application/zip' }) });
-        status.textContent = r.status === 'saved' ? 'Guardado ' + base + '.zip con ' + files.length + (files.length > 1 ? ' archivos STL (caja y tapa). Descomprímelo y abre los STL en tu laminador.' : ' archivo STL. Descomprímelo y ábrelo en tu laminador.') : 'Enviado.';
+        status.textContent = r.status === 'saved' ? 'Guardado ' + base + '.zip con ' + nStl + (nStl > 1 ? ' archivos STL (caja y tapa). Descomprímelo y abre los STL en tu laminador.' : ' archivo STL. Descomprímelo y ábrelo en tu laminador.') : 'Enviado.';
       } catch (e) {
         status.textContent = e && e.code === 'declined' ? 'Descarga cancelada.' : 'No se pudo guardar el archivo en esta vista.';
       }
@@ -1267,6 +1344,82 @@ function makeZip(files) {
     status.textContent = 'Descargando ' + files.map(f => f.name).join(' y ') + '.';
   }
   $('#dl').addEventListener('click', download);
+
+  // ---------- Mis diseños ----------
+  const SAVES_KEY = 'cajas-a-medida:diseños';
+  const inFrame = (() => { try { return window.top !== window; } catch (e) { return true; } })(); // en el visor el enlace de la página no sirve: se copia el código
+  function designJson() { const name = $('#saveName').value.trim(); return JSON.stringify(Object.assign(name ? { name } : {}, designOf(S)), null, 2); }
+  function readSaves() { try { const a = JSON.parse(localStorage.getItem(SAVES_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => x && x.d && x.name) : []; } catch (e) { return []; } }
+  function writeSaves(a) { try { localStorage.setItem(SAVES_KEY, JSON.stringify(a)); return true; } catch (e) { return false; } }
+  function say(m) { $('#status').textContent = m; }
+  function openDesign(d, msg) {
+    let n; try { n = designApply(d, DEFAULTS); } catch (e) { say(e.message); return; }
+    Object.assign(S, n); if (S.lidType === 'none') S.show = 'box';
+    note = msg; writeInputs(); schedule(true);
+  }
+  function defaultName() { return 'Caja ' + [S.W, S.D, S.H].map(v => fmt(v, 0)).join(' × '); }
+  function renderSaves() {
+    const list = $('#saveList'), a = readSaves();
+    $('#savesCount').textContent = a.length ? '(' + a.length + ')' : '';
+    list.innerHTML = '';
+    a.forEach((x, i) => {
+      const li = document.createElement('li'), meta = document.createElement('div'), b = document.createElement('b'), sm = document.createElement('small');
+      b.textContent = x.name; b.title = x.name;
+      sm.textContent = ' ' + new Date(x.at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+      meta.append(b, sm);
+      const open = document.createElement('button'); open.type = 'button'; open.className = 'chip'; open.textContent = 'Abrir';
+      open.addEventListener('click', () => { $('#saveName').value = x.name; openDesign(x.d, 'Abierto «' + x.name + '».'); });
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'chip del'; del.textContent = 'Borrar';
+      del.addEventListener('click', () => {
+        if (!del.dataset.armed) { del.dataset.armed = '1'; del.textContent = '¿Seguro?'; setTimeout(() => { delete del.dataset.armed; del.textContent = 'Borrar'; }, 3000); return; }
+        const cur = readSaves(); cur.splice(i, 1); writeSaves(cur); renderSaves(); say('Borrado «' + x.name + '».');
+      });
+      li.append(meta, open, del); list.appendChild(li);
+    });
+  }
+  $('#saveBtn').addEventListener('click', () => {
+    const name = $('#saveName').value.trim() || defaultName(), a = readSaves(), i = a.findIndex(x => x.name === name);
+    const entry = { name, at: Date.now(), d: designOf(S) };
+    if (i >= 0) a.splice(i, 1);
+    a.unshift(entry);
+    if (!writeSaves(a.slice(0, 100))) { say('Este navegador no deja guardar aquí. Exporta el archivo para no perderlo.'); return; }
+    $('#saveName').value = name; renderSaves(); say((i >= 0 ? 'Actualizado «' : 'Guardado «') + name + '» en este navegador.');
+  });
+  $('#saveName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveBtn').click(); });
+  if (inFrame) { $('#copyCode').textContent = 'Copiar código'; $('#codeWord').textContent = 'código'; }
+  $('#copyCode').addEventListener('click', async () => {
+    const code = designCode(designOf(S)), text = inFrame ? code : location.href.split('#')[0] + '#d=' + code;
+    try { await navigator.clipboard.writeText(text); say(inFrame ? 'Código copiado. Pégalo en «Abrir un enlace o código» para recuperar el diseño.' : 'Enlace copiado. Al abrirlo se carga este diseño.'); }
+    catch (e) { const f = $('#pasteCode'); f.value = text; f.focus(); f.select(); say('No se pudo copiar solo: está seleccionado abajo, cópialo con Ctrl+C o ⌘C.'); }
+  });
+  $('#pasteBtn').addEventListener('click', () => {
+    const v = $('#pasteCode').value; if (!v.trim()) return;
+    let d; try { d = designParse(v); } catch (e) { say('Eso no parece un enlace o código de diseño.'); return; }
+    openDesign(d, 'Diseño abierto.'); $('#pasteCode').value = '';
+  });
+  $('#pasteCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('#pasteBtn').click(); });
+  function fileName() { return ($('#saveName').value.trim() || (info ? nameBase() : 'caja')).replace(/[\\/:*?"<>|]+/g, '_') + '.json'; }
+  $('#exportBtn').addEventListener('click', async () => {
+    const name = fileName(), data = designJson();
+    let dls = null;
+    try { dls = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dls = null; }
+    if (dls) {
+      try { await dls.save({ filename: name, data }); say('Guardado ' + name + '. Ábrelo con «Importar .json».'); }
+      catch (e) { say(e && e.code === 'declined' ? 'Descarga cancelada.' : 'No se pudo guardar el archivo en esta vista.'); }
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    say('Descargando ' + name + '.');
+  });
+  $('#importBtn').addEventListener('click', () => $('#importFile').click());
+  $('#importFile').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+    let d; try { d = JSON.parse(await f.text()); } catch (err) { say('Ese archivo no es un diseño de Cajas a medida.'); return; }
+    $('#saveName').value = d && typeof d.name === 'string' ? d.name : f.name.replace(/\.json$/i, '');
+    openDesign(d, 'Abierto ' + f.name + '.');
+  });
+  renderSaves();
 
   $('#open').value = S.open;
   writeInputs(); initThree(); rebuild(); resize();
