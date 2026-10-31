@@ -2,7 +2,7 @@ import fs from 'fs'; import earcut from 'earcut'; import {execSync} from 'child_
 globalThis.earcut = earcut;
 const html = fs.readFileSync(new URL('../index.html', import.meta.url),'utf8');
 const core = html.split('// ==CORE-START==')[1].split('// ==CORE-END==')[0];
-const names='roundedRect polyArea Soup layout lidDims validate buildBox buildLid soupVolume soupToStl makeZip crc32 parseFractions hingeGeom hingeBoxProfile hingeLidProfile circlePoly convexHull latchOf snapGeom magnetGeom clipGeom traceMask nestLoops labelGeom'.split(' ');
+const names='roundedRect polyArea Soup layout lidDims validate buildBox buildLid soupVolume soupToStl makeZip crc32 parseFractions hingeGeom hingeBoxProfile hingeLidProfile circlePoly convexHull latchOf snapGeom magnetGeom clipGeom traceMask nestLoops labelGeom sideLabels'.split(' ');
 fs.writeFileSync('core.mjs', core + '\nexport {'+names.join(',')+'};');
 const C = await import('./core.mjs?'+Date.now());
 let fail=0; const ok=(c,m)=>{console.log((c?'OK   ':'FAIL ')+m); if(!c) fail++;};
@@ -92,6 +92,24 @@ ok(C.validate({...base,colFr:'1,2'}).warns.some(w=>/reparto/.test(w)),'aviso rep
   const g=C.labelGeom(p,C.layout(p)); const dv=C.soupVolume(lid)-C.soupVolume(plain);
   ok(g.mode==='emboss'?dv>0:dv<0, k+': '+(g.mode==='emboss'?'relieve suma':'grabado quita')+' '+dv.toFixed(1)+' mm³, ajuste '+g.fit.toFixed(2));
  }
+ const all={lid:false,front:true,back:true,left:true,right:true};
+ const scfg={
+  ladosRelieve:{...base,label,labelSize:14,labelMode:'emboss',labelDepth:0.6,labelOn:all},
+  ladosGrabado:{...base,label,labelSize:14,labelMode:'engrave',labelDepth:0.6,labelOn:all,wall:2},
+  ladosClic:{...base,label,labelSize:14,labelMode:'emboss',labelDepth:0.6,labelOn:all,latch:'snap',snapB:0.3},
+  ladosSinRadio:{...base,label,labelSize:14,labelMode:'emboss',labelDepth:0.8,labelOn:all,corner:0,lidType:'none'},
+  ladosImanes:{...base,label,labelSize:14,labelMode:'emboss',labelDepth:0.6,labelOn:{...all,lid:true},latch:'magnet',magD:6,magH:2},
+  ladosBisagraPestillo:{...base,label,labelSize:14,labelMode:'emboss',labelDepth:0.6,labelOn:all,lidType:'hinge',latch:'clip'},
+ };
+ for(const [k,p] of Object.entries(scfg)){
+  const v=C.validate(p); ok(v.errors.length===0,k+': sin errores ('+v.warns.join(' | ')+')');
+  const box=C.buildBox(p), plain=C.buildBox({...p,label:null}); fs.writeFileSync(`out/${k}.stl`,C.soupToStl(box,k));
+  const o=execSync(`node check-stl.mjs out/${k}.stl`).toString(); ok(/STL VÁLIDO/.test(o),k+' sólido cerrado '+o.split('\n').filter(l=>/aristas/.test(l)).join(' '));
+  const L=C.layout(p), sl=C.sideLabels(p,L,C.roundedRect(0,0,L.OW,L.OD,Math.max(0,Math.min(p.corner,L.OW/2,L.OD/2)))); const dv=C.soupVolume(box)-C.soupVolume(plain);
+  ok(sl.length===(p.lidType==='hinge'?2:4)-(p.latch==='clip'?0:0)&&(p.labelMode==='emboss'?dv>0:dv<0), k+': '+sl.map(s=>s.side).join(',')+', Δvolumen '+dv.toFixed(1));
+ }
+ ok(C.validate({...scfg.ladosGrabado,wall:1.2}).errors.some(e=>/laterales/.test(e)),'grabado lateral más hondo que la pared -> error');
+ ok(C.validate({...scfg.ladosRelieve,H:9}).errors.some(e=>/lateral/.test(e)),'caja baja con tapa encajada -> sin sitio en el lateral');
  ok(C.validate(tcfg.textoGrande).warns.some(w=>/reducido/.test(w)),'texto enorme -> se reduce y avisa');
  ok(C.validate({...tcfg.textoEncajada,labelDepth:1.8}).errors.length>0,'grabado más hondo que el plato -> error');
  ok(C.labelGeom({...base,lidType:'none',label},C.layout(base))===null,'sin tapa no hay texto');

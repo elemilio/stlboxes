@@ -54,6 +54,7 @@ h2 { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.09em; te
 .seg button { font: 500 0.88rem var(--sans); color: var(--ink); background: transparent; border: 0; padding: 8px 6px; cursor: pointer; border-left: 1px solid var(--line); }
 .seg button:first-child { border-left: 0; }
 .seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+.seg button:disabled { color: var(--muted); opacity: 0.5; cursor: not-allowed; }
 button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font: 500 0.82rem var(--sans); color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 99px; padding: 5px 11px; cursor: pointer; }
@@ -168,9 +169,18 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
     </section>
 
     <section id="labelSec">
-      <h2>Texto en la tapa</h2>
+      <h2>Texto</h2>
       <label class="f">Texto o emojis (Intro para otra línea)<span class="in"><textarea id="text" data-k="text" data-str rows="2" placeholder="TORNILLOS"></textarea></span></label>
       <div class="chips" id="emojis" aria-label="Añadir emoji"></div>
+      <div class="f">Dónde
+        <div class="seg" role="group" aria-label="Dónde va el texto" id="places">
+          <button type="button" data-place="lid">Tapa</button>
+          <button type="button" data-place="front">Delante</button>
+          <button type="button" data-place="back">Detrás</button>
+          <button type="button" data-place="left">Izq.</button>
+          <button type="button" data-place="right">Dcha.</button>
+        </div>
+      </div>
       <div class="seg" role="group" aria-label="Relieve o grabado" id="labelModeSeg">
         <button type="button" data-seg="labelMode" data-v="emboss" aria-pressed="true">En relieve</button>
         <button type="button" data-seg="labelMode" data-v="engrave" aria-pressed="false">Grabado</button>
@@ -255,11 +265,13 @@ class Soup {
   constructor() { this.a = []; this.m = null; this.flip = false; } // flip: invierte el giro (para m en espejo)
   tri(p, q, r) { const m = this.m; if (m) { p = m(p); q = m(q); r = m(r); } if (this.flip) { const t = q; q = r; r = t; } this.a.push(p[0], p[1], p[2], q[0], q[1], q[2], r[0], r[1], r[2]); }
   // Pared vertical entre z0 y z1. outward=true: la normal sale a la derecha del recorrido (anillo antihorario = pared exterior).
-  wall(ring, z0, z1, outward) { this.loft(ring, z0, ring, z1, outward); }
+  // skip: índices de tramos que no se generan (los pone otro, p. ej. un lateral con texto).
+  wall(ring, z0, z1, outward, skip) { this.loft(ring, z0, ring, z1, outward, skip); }
   // Como wall, pero uniendo dos contornos distintos con el mismo número de vértices (paredes con relieve).
-  loft(r0, z0, r1, z1, outward) {
+  loft(r0, z0, r1, z1, outward, skip) {
     const n = r0.length;
     for (let i = 0; i < n; i++) {
+      if (skip && skip.has(i)) continue;
       const a = r0[i], b = r0[(i + 1) % n], c = r1[i], d = r1[(i + 1) % n];
       const a0 = [a[0], a[1], z0], b0 = [b[0], b[1], z0], a1 = [c[0], c[1], z1], b1 = [d[0], d[1], z1];
       if (outward) { this.tri(a0, b0, b1); this.tri(a0, b1, a1); }
@@ -446,8 +458,9 @@ function snapGeom(p) {
   return { b, lid: [lidHi, lidLo], box: [boxHi, boxLo], ok: boxHi >= 0.6, minSkirt: 1.4 + 4 * b };
 }
 // Pared con relieve: zs = [[z, desplazamiento], ...] de abajo arriba; ring(d) da el contorno desplazado d.
-function reliefWall(S, ring, zs, outward) {
-  for (let i = 0; i + 1 < zs.length; i++) S.loft(ring(zs[i][1]), zs[i][0], ring(zs[i + 1][1]), zs[i + 1][0], outward);
+// skip vale solo para el primer tramo (el liso de abajo).
+function reliefWall(S, ring, zs, outward, skip) {
+  for (let i = 0; i + 1 < zs.length; i++) S.loft(ring(zs[i][1]), zs[i][0], ring(zs[i + 1][1]), zs[i + 1][0], outward, i ? null : skip);
 }
 // Imanes: una columna maciza en cada esquina de la caja (las delanteras con bisagra) con un hueco desde arriba,
 // y el hueco gemelo en la tapa. Si el plato es fino, el imán de la tapa sobresale y entra en la parte alta del hueco
@@ -591,21 +604,61 @@ function addRelief(S, nodes, z0, h) {
   return nodes.filter(nd => nd.depth === 0).map(nd => nd.ring);
 }
 // Texto ya trazado (p.label: contornos en píxeles con y hacia abajo, bbox, unit = mm por píxel a tamaño 1 mm),
-// centrado en la cara de fuera de la tapa y reducido si no cabe. La tapa encajada se imprime boca abajo, así que su
-// texto va grabado en la cara de la cama y en espejo, para que se lea al darle la vuelta.
+// centrado en un rectángulo [x0, x1, y0, y1] y reducido si no cabe. yUp: la y de la imagen va hacia -y.
+function placeLabel(p, area, yUp) {
+  const T = p.label, [ax0, ax1, ay0, ay1] = area, [bx0, by0, bx1, by1] = T.bbox, s0 = p.labelSize * T.unit;
+  const fit = Math.min(1, (ax1 - ax0) / ((bx1 - bx0) * s0), (ay1 - ay0) / ((by1 - by0) * s0));
+  if (!(fit > 0)) return { fit: 0, nodes: [] };
+  const s = s0 * fit, sy = yUp ? -s : s, cx = (ax0 + ax1) / 2, cy = (ay0 + ay1) / 2, bcx = (bx0 + bx1) / 2, bcy = (by0 + by1) / 2;
+  const rings = T.loops.map(l => l.map(([x, y]) => [cx + (x - bcx) * s, cy + (y - bcy) * sy]));
+  return { fit, size: p.labelSize * fit, w: (bx1 - bx0) * s, h: (by1 - by0) * s, nodes: nestLoops(rings) };
+}
+function labelOn(p, where) { return p.labelOn ? !!p.labelOn[where] : where === 'lid'; }
+// En la tapa: la encajada se imprime boca abajo, así que su texto va grabado en la cara de la cama y en espejo,
+// para que se lea al darle la vuelta.
 function labelGeom(p, L) {
-  const T = p.label;
-  if (!T || !T.bbox || p.lidType === 'none') return null;
+  if (!p.label || !p.label.bbox || p.lidType === 'none' || !labelOn(p, 'lid')) return null;
   const hinge = p.lidType === 'hinge', mode = hinge && p.labelMode === 'emboss' ? 'emboss' : 'engrave';
   const M = latchOf(p) === 'magnet' ? magnetGeom(p, L) : null, mx = M ? M.k + 1 : 3, my = 3;
   const e = hinge ? 0 : p.tol + p.wall, back = hinge ? 2 * hingeGeom(p, L).Rk + 2 : 0; // lejos de los nudillos
-  const ax0 = e + mx, ax1 = e + L.OW - mx, ay0 = e + my, ay1 = e + L.OD - my - back;
-  const [bx0, by0, bx1, by1] = T.bbox, s0 = p.labelSize * T.unit;
-  const fit = Math.min(1, (ax1 - ax0) / ((bx1 - bx0) * s0), (ay1 - ay0) / ((by1 - by0) * s0));
-  if (!(fit > 0)) return { mode, fit: 0, nodes: [] };
-  const s = s0 * fit, sy = hinge ? -s : s, cx = (ax0 + ax1) / 2, cy = (ay0 + ay1) / 2, bcx = (bx0 + bx1) / 2, bcy = (by0 + by1) / 2;
-  const rings = T.loops.map(l => l.map(([x, y]) => [cx + (x - bcx) * s, cy + (y - bcy) * sy]));
-  return { mode, fit, size: p.labelSize * fit, w: (bx1 - bx0) * s, h: (by1 - by0) * s, nodes: nestLoops(rings) };
+  return Object.assign({ mode }, placeLabel(p, [e + mx, e + L.OW - mx, e + my, e + L.OD - my - back], hinge));
+}
+// Laterales de la caja. Cada uno es una cara plana entre las esquinas redondeadas; en sus coordenadas (u, v, w)
+// u va a la derecha mirándolo desde fuera, v hacia arriba y w hacia fuera. map pasa de esas coordenadas al mundo
+// (todas conservan la orientación) y uOf da la u de un punto del contorno.
+const SIDES = {
+  front: { name: 'delantero', on: (q, L) => Math.abs(q[1]) < 1e-9, uOf: (q, L) => q[0], map: L => q => [q[0], -q[2], q[1]] },
+  back: { name: 'trasero', on: (q, L) => Math.abs(q[1] - L.OD) < 1e-9, uOf: (q, L) => L.OW - q[0], map: L => q => [L.OW - q[0], L.OD + q[2], q[1]] },
+  right: { name: 'derecho', on: (q, L) => Math.abs(q[0] - L.OW) < 1e-9, uOf: (q, L) => q[1], map: L => q => [L.OW + q[2], q[0], q[1]] },
+  left: { name: 'izquierdo', on: (q, L) => Math.abs(q[0]) < 1e-9, uOf: (q, L) => L.OD - q[1], map: L => q => [-q[2], L.OD - q[0], q[1]] },
+};
+// Qué laterales pueden llevar texto: detrás están los nudillos de la bisagra y delante la lengüeta del pestillo.
+function sidesFree(p) { return { front: latchOf(p) !== 'clip', back: p.lidType !== 'hinge', left: true, right: true }; }
+// Texto en los laterales elegidos, por debajo de lo que tapa el borde de la tapa encajada (y del cordón del clic).
+// zF es la altura de la cara plana que se sustituye: toda la pared, o hasta donde empieza el cordón del clic.
+function sideLabels(p, L, outer) {
+  if (!p.label || !p.label.bbox) return [];
+  const free = sidesFree(p), mode = p.labelMode === 'engrave' ? 'engrave' : 'emboss', out = [];
+  const zF = latchOf(p) === 'snap' ? L.OH - snapGeom(p).box[1] : L.OH;
+  const vTop = L.OH - (p.lidType === 'skirt' ? p.skirt + 1 : 0) - 2;
+  for (const side of Object.keys(SIDES)) {
+    if (!labelOn(p, side) || !free[side]) continue;
+    const sd = SIDES[side], n = outer.length;
+    let edge = -1;
+    for (let i = 0; i < n && edge < 0; i++) if (sd.on(outer[i], L) && sd.on(outer[(i + 1) % n], L)) edge = i;
+    if (edge < 0) continue;
+    const ua = sd.uOf(outer[edge], L), ub = sd.uOf(outer[(edge + 1) % n], L), u0 = Math.min(ua, ub), u1 = Math.max(ua, ub);
+    out.push(Object.assign({ side, name: sd.name, mode, edge, zF, u0, u1, map: sd.map(L) }, placeLabel(p, [u0 + 2, u1 - 2, 2, vTop], true)));
+  }
+  return out;
+}
+function addSideLabels(S, p, sides) {
+  for (const sl of sides) {
+    S.m = sl.map;
+    const holes = addRelief(S, sl.nodes, 0, sl.mode === 'emboss' ? p.labelDepth : -p.labelDepth);
+    S.cap([[sl.u0, 0], [sl.u1, 0], [sl.u1, sl.zF], [sl.u0, sl.zF]], holes, 0, true);
+    S.m = null;
+  }
 }
 
 function validate(p) {
@@ -655,6 +708,14 @@ function validate(p) {
       if (lab.size < 5) warns.push('Con letras de menos de 5 mm los trazos finos pueden no salir bien.');
     }
   }
+  const R = cornerR(p, L), sides = sideLabels(p, L, roundedRect(0, 0, L.OW, L.OD, R));
+  for (const sl of sides) {
+    if (!sl.fit) errors.push('El lateral ' + sl.name + ' no tiene sitio para texto (la caja es baja o la tapa tapa casi toda la pared).');
+    else if (sl.fit < 0.999) warns.push('En el lateral ' + sl.name + ' el texto no cabía y se ha reducido a ' + mm(sl.size) + ' mm.');
+  }
+  if (sides.length && sides[0].mode === 'engrave' && p.labelDepth > p.wall - 0.8) errors.push('Una pared de ' + mm(p.wall) + ' mm solo deja grabar ' + mm(Math.max(0, p.wall - 0.8)) + ' mm en los laterales. Usa texto en relieve o una pared más gruesa.');
+  if (sides.length && sides[0].mode === 'emboss' && p.labelDepth > 1) warns.push('En los laterales, con más de 1 mm de relieve la parte de abajo de las letras queda en voladizo y puede colgar.');
+  if (sides.length && sides.every(sl => sl.fit) && Math.min(...sides.map(sl => sl.size)) < 5 && !(lab && lab.size < 5)) warns.push('Con letras de menos de 5 mm los trazos finos pueden no salir bien.');
   if (errors.length) return { errors, warns, oks, L };
   const wide = Math.max(L.OW, L.OD);
   const lidMax = p.lidType !== 'none' ? lidDims(p, L) : null;
@@ -672,6 +733,8 @@ function validate(p) {
   if (lab) oks.push(lab.mode === 'emboss'
     ? 'Texto en relieve: para que salga de otro color, cambia de filamento al llegar a ' + mm(p.plate) + ' mm de altura.'
     : p.lidType === 'skirt' ? 'Texto grabado en la cara de la tapa que va sobre la cama; al darle la vuelta se lee al derecho.' : 'Texto grabado en la tapa.');
+  if (sides.length) oks.push('Texto ' + (sides[0].mode === 'emboss' ? 'en relieve' : 'grabado') + ' en ' + (sides.length > 1 ? 'los laterales ' : 'el lateral ') +
+    sides.map(sl => sl.name).join(', ').replace(/, ([^,]*)$/, ' y $1') + '.');
   return { errors, warns, oks, L };
 }
 
@@ -687,12 +750,14 @@ function buildBox(p) {
     pockets.push(cut ? pocketRing(x0, y0, x1, y1, rr, cut, M.s) : roundedRect(x0, y0, x1, y1, rr)); notched.push(!!cut);
   }));
   const mags = M ? M.pts.map(([x, y]) => circlePoly(x, y, M.rHole, 28)) : [];
+  const sides = sideLabels(p, L, outer).filter(sl => sl.fit > 0), skip = sides.length ? new Set(sides.map(sl => sl.edge)) : null;
   S.fan(outer, 0, false);
   if (lt === 'snap') {
     const G = snapGeom(p), n = segFor(R), H = L.OH;
     const ring = d => d ? roundedRect(-d, -d, L.OW + d, L.OD + d, R + d, n) : outer;
-    reliefWall(S, ring, [[0, 0], [H - G.box[1], 0], [H - (G.box[0] + G.box[1]) / 2, G.b], [H - G.box[0], 0], [H, 0]], true);
-  } else S.wall(outer, 0, L.OH, true);
+    reliefWall(S, ring, [[0, 0], [H - G.box[1], 0], [H - (G.box[0] + G.box[1]) / 2, G.b], [H - G.box[0], 0], [H, 0]], true, skip);
+  } else S.wall(outer, 0, L.OH, true, skip);
+  addSideLabels(S, p, sides);
   S.cap(outer, pockets.concat(mags), L.OH, true);
   pockets.forEach((pk, i) => { S.wall(pk, p.floor, L.OH, false); if (notched[i]) S.cap(pk, [], p.floor, true); else S.fan(pk, p.floor, true); });
   for (const h of mags) { S.wall(h, L.OH - M.Db, L.OH, false); S.fan(h, L.OH - M.Db, true); }
@@ -845,12 +910,15 @@ function makeZip(files) {
       magnet: 'Columnas en las esquinas de la caja con huecos para imanes de disco, y los huecos gemelos en la tapa' + (lt === 'hinge' ? ' (solo delante, lejos de la bisagra).' : '.'),
       clip: 'Una lengüeta flexible delante de la caja engancha la tapa al cerrarla. Sustituye a la pestaña de la tapa: para abrir, tira de la lengüeta.',
     }[S.latch];
-    const emboss = lt === 'hinge' && S.labelMode === 'emboss';
-    $('#labelSec').hidden = lt === 'none'; $('#labelModeSeg').hidden = lt !== 'hinge';
-    $('#depthLabel').textContent = emboss ? 'Altura' : 'Profundidad';
-    $('#labelHint').textContent = lt === 'skirt'
-      ? 'La tapa encajada se imprime boca abajo, así que el texto va grabado en la cara que toca la cama. Los emojis salen como silueta y sus partes oscuras quedan huecas.'
-      : 'El texto se centra en la tapa y se reduce si no cabe. Los emojis salen como silueta y sus partes oscuras quedan huecas.';
+    const free = Object.assign({ lid: lt !== 'none' }, sidesFree({ lidType: lt, latch: S.latch }));
+    const on = S.labelOn = Object.assign({ lid: true }, S.labelOn);
+    for (const b of $$('[data-place]')) { const k = b.dataset.place; b.disabled = !free[k]; b.setAttribute('aria-pressed', String(!!(on[k] && free[k]))); b.title = free[k] ? '' : k === 'lid' ? 'Esta caja no tiene tapa' : k === 'back' ? 'Detrás está la bisagra' : 'Delante está el pestillo'; }
+    const sidesOn = ['front', 'back', 'left', 'right'].some(k => on[k] && free[k]), lidOn = on.lid && free.lid;
+    $('#labelModeSeg').hidden = !(sidesOn || (lidOn && lt === 'hinge'));
+    $('#depthLabel').textContent = S.labelMode === 'emboss' && !$('#labelModeSeg').hidden ? 'Altura' : 'Profundidad';
+    $('#labelHint').textContent = (lidOn && lt === 'skirt' ? 'La tapa encajada se imprime boca abajo, así que en ella el texto siempre va grabado, en la cara que toca la cama. ' : '') +
+      (sidesOn && lt === 'skirt' ? 'En los laterales el texto queda por debajo del borde de la tapa. ' : '') +
+      'El texto se centra y se reduce si no cabe. Los emojis salen como silueta y sus partes oscuras quedan huecas.';
     $('#tabLid').hidden = lt === 'none'; $('#tabBoth').hidden = lt === 'none';
     if (lt === 'none' && S.show !== 'box') S.show = 'box';
   }
@@ -872,6 +940,9 @@ function makeZip(files) {
     c.addEventListener('click', () => { Object.assign(S, pr.v); if (S.lidType === 'none') S.show = 'box'; writeInputs(); schedule(true); });
     $('#presets').appendChild(c);
   });
+  for (const b of $$('[data-place]')) b.addEventListener('click', () => {
+    const k = b.dataset.place; S.labelOn = Object.assign({ lid: true }, S.labelOn, { [k]: !(S.labelOn && S.labelOn[k]) }); writeInputs(); schedule();
+  });
   ['⭐', '❤️', '🔩', '🔧', '🧵', '🎲', '💎', '🌿', '🐱', '⚡'].forEach(em => {
     const c = document.createElement('button'); c.type = 'button'; c.className = 'chip emo'; c.textContent = em; c.setAttribute('aria-label', 'Añadir ' + em);
     c.addEventListener('click', () => { S.text = (S.text || '') + em; writeInputs(); schedule(); });
@@ -892,7 +963,8 @@ function makeZip(files) {
       divT: S.divT, wall: S.wall, floor: S.floor, corner: S.corner, lidType: S.lidType, tol: S.tol, plate: S.plate, skirt: S.skirt, pin: S.pin, knuckles: S.knuckles, bed: S.bed, nozzle: S.nozzle,
       latch: S.latch, snapB: S.snapB, magD: S.magD, magH: S.magH, labelSize: S.labelSize, labelMode: S.labelMode, labelDepth: S.labelDepth };
     const lt = latchOf(p);
-    p.label = p.lidType !== 'none' ? labelData() : null;
+    p.labelOn = Object.assign({ lid: true }, S.labelOn);
+    p.label = Object.keys(p.labelOn).some(k => p.labelOn[k] && (k !== 'lid' || p.lidType !== 'none')) ? labelData() : null;
     const nums = ['W', 'D', 'H', 'cols', 'rows', 'divT', 'wall', 'floor', 'corner'].concat(p.lidType === 'skirt' ? ['tol', 'plate', 'skirt'] : p.lidType === 'hinge' ? ['plate', 'pin', 'knuckles'] : [],
       lt === 'snap' ? ['snapB'] : lt === 'magnet' ? ['magD', 'magH'] : [], p.label ? ['labelSize', 'labelDepth'] : []);
     for (const k of nums) if (!isFinite(p[k])) return null;
@@ -972,7 +1044,9 @@ function makeZip(files) {
     if (lt === 'magnet') { const M = magnetGeom(p, L); rows.push(['Imanes', fmt(2 * M.pts.length, 0) + ' de Ø ' + fmt(p.magD) + ' × ' + fmt(p.magH) + ' mm (' + M.pts.length + ' en la caja y ' + M.pts.length + ' en la tapa)']); }
     if (lt === 'clip') rows.push(['Cierre', 'pestillo delantero de ' + fmt(clipGeom(p, L).w, 0) + ' mm']);
     const lab = labelGeom(p, L);
-    if (lab && lab.fit) rows.push(['Texto', fmt(lab.w) + ' × ' + fmt(lab.h) + ' mm, ' + (lab.mode === 'emboss' ? 'en relieve' : 'grabado') + ' ' + fmt(p.labelDepth) + ' mm']);
+    if (lab && lab.fit) rows.push(['Texto', fmt(lab.w) + ' × ' + fmt(lab.h) + ' mm en la tapa, ' + (lab.mode === 'emboss' ? 'en relieve' : 'grabado') + ' ' + fmt(p.labelDepth) + ' mm']);
+    const sl = sideLabels(p, L, roundedRect(0, 0, L.OW, L.OD, cornerR(p, L))).filter(s => s.fit);
+    if (sl.length) rows.push([lab && lab.fit ? 'Laterales' : 'Texto', sl.map(s => fmt(s.w) + ' × ' + fmt(s.h) + ' mm ' + ({ front: 'delante', back: 'detrás', left: 'a la izquierda', right: 'a la derecha' })[s.side]).join(' · ') + ', ' + (sl[0].mode === 'emboss' ? 'en relieve' : 'grabado')]);
     rows.push(['Material', fmt(vol / 1000) + ' cm³ · unos ' + fmt(g, 0) + ' g de PLA al 100 %']);
     $('#readout').innerHTML = '';
     for (const [k, v] of rows) { const d = document.createElement('div'); const s = document.createElement('span'); s.textContent = k + '  '; d.appendChild(s); d.appendChild(document.createTextNode(v)); $('#readout').appendChild(d); }
