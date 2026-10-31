@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cajas a medida</title>
+<title>Box Generator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;700&display=swap">
@@ -33,9 +33,15 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 .wrap { max-width: 1260px; margin: 0 auto; display: grid; gap: 20px 28px; grid-template-columns: minmax(300px, 390px) minmax(0, 1fr); grid-template-areas: "head head" "controls view"; align-items: start; }
-header { grid-area: head; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
-h1 { font-size: 1.7rem; line-height: 1.1; margin: 0; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
-header p { margin: 0; color: var(--muted); max-width: 60ch; }
+/* Barra superior: título, «Mis diseños» (panel desplegable) e idioma. */
+.topbar { grid-area: head; display: flex; align-items: center; gap: 10px 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); position: relative; z-index: 10; }
+h1 { font-size: 1.35rem; line-height: 1.1; margin: 0; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.topbar > p { margin: 0 auto 0 0; color: var(--muted); font-size: 0.88rem; min-width: 0; }
+@media (max-width: 1000px) { .topbar > p { display: none; } .topbar h1 { margin-right: auto; } }
+@media (max-width: 480px) {
+  .topbar h1 { font-size: 1.15rem; }
+  .saves .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 .controls { grid-area: controls; min-width: 0; }
 .view { grid-area: view; min-width: 0; position: sticky; top: max(16px, env(safe-area-inset-top, 0px)); display: grid; gap: 12px; }
 section { padding-block: 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
@@ -102,8 +108,16 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .msgs li.ok { color: var(--muted); }
 .msgs li.ok::before { background: var(--accent); }
 .status { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0; }
-.seg.lang { margin-left: auto; grid-auto-columns: auto; }
-.seg.lang button { padding: 5px 10px; font-size: 0.8rem; }
+.seg.lang { flex: none; }
+.seg.lang button { padding: 6px 10px; font-size: 0.8rem; font-weight: 700; }
+.saves { flex: none; border: 0; padding: 0; background: none; }
+.saves[open] { display: block; padding: 0; }
+.saves > summary { font: 500 0.85rem var(--sans); border: 1px solid var(--line); border-radius: 7px; background: var(--field); padding: 6px 11px; gap: 6px; }
+.saves > summary::before { display: none; }
+.saves > summary:hover, .saves[open] > summary { border-color: var(--accent); }
+.saves > summary svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.saves .pop .status:empty { display: none; }
+.saves .pop { position: absolute; right: 0; top: calc(100% - 6px); width: min(400px, 100%); display: grid; gap: 10px; padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgb(0 0 0 / 0.18); }
 /* Apartados opcionales: un interruptor en la cabecera; apagados solo se ve la cabecera. */
 .sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sechead label { cursor: pointer; }
@@ -139,12 +153,34 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 </style>
 
 <div class="wrap">
-  <header>
-    <h1>Cajas a medida</h1>
+  <header class="topbar">
+    <h1>Box Generator</h1>
     <p>Pon las medidas, reparte los huecos y descarga el STL. Se imprime sin soportes.</p>
+    <details class="saves" id="saves">
+      <summary><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 3h9l3 3v11H4z"/><path d="M7 3v4h6V3M7 17v-5h6v5"/></svg><span class="lbl">Mis diseños</span><span class="count" id="savesCount"></span></summary>
+      <div class="pop">
+        <div class="saverow">
+          <label class="f">Nombre del diseño<span class="in"><input id="saveName" type="text" maxlength="60" placeholder="Caja de tornillos"></span></label>
+          <button type="button" class="btn alt" id="saveBtn">Guardar</button>
+        </div>
+        <ul class="savelist" id="saveList"></ul>
+        <p class="hint" id="savesHint"></p>
+        <div class="chips">
+          <button type="button" class="chip" id="copyCode">Copiar enlace</button>
+          <button type="button" class="chip" id="exportBtn">Exportar .json</button>
+          <button type="button" class="chip" id="importBtn">Importar .json</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
+        <div class="saverow">
+          <label class="f">Abrir un enlace o código<span class="in"><input id="pasteCode" type="text" placeholder="Pega aquí"></span></label>
+          <button type="button" class="btn alt" id="pasteBtn">Abrir</button>
+        </div>
+        <p class="status" id="savesStatus" role="status"></p>
+      </div>
+    </details>
     <div class="seg lang" role="group" aria-label="Idioma">
-      <button type="button" data-lang="es" lang="es">Español</button>
-      <button type="button" data-lang="en" lang="en">English</button>
+      <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button>
+      <button type="button" data-lang="en" lang="en" aria-label="English">EN</button>
     </div>
   </header>
 
@@ -293,25 +329,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
       </div>
     </div>
     <p class="status" id="status" role="status"></p>
-    <details class="saves" id="saves">
-      <summary>Mis diseños <span class="count" id="savesCount"></span></summary>
-      <div class="saverow">
-        <label class="f">Nombre del diseño<span class="in"><input id="saveName" type="text" maxlength="60" placeholder="Caja de tornillos"></span></label>
-        <button type="button" class="btn alt" id="saveBtn">Guardar</button>
-      </div>
-      <ul class="savelist" id="saveList"></ul>
-      <p class="hint" id="savesHint"></p>
-      <div class="chips">
-        <button type="button" class="chip" id="copyCode">Copiar enlace</button>
-        <button type="button" class="chip" id="exportBtn">Exportar .json</button>
-        <button type="button" class="chip" id="importBtn">Importar .json</button>
-        <input type="file" id="importFile" accept=".json,application/json" hidden>
-      </div>
-      <div class="saverow">
-        <label class="f">Abrir un enlace o código<span class="in"><input id="pasteCode" type="text" placeholder="Pega aquí"></span></label>
-        <button type="button" class="btn alt" id="pasteBtn">Abrir</button>
-      </div>
-    </details>
   </div>
 </div>
 
@@ -791,7 +808,7 @@ const EN = {
   'Texto grabado en el lateral {s}.': 'Engraved text on the {s} side.',
   'Texto grabado en los laterales {s}.': 'Engraved text on the {s} sides.',
   'delantero': 'front', 'trasero': 'back', 'derecho': 'right', 'izquierdo': 'left', ' y ': ' and ',
-  'No es un diseño de Cajas a medida.': 'This is not a Custom Boxes design.',
+  'No es un diseño de Box Generator.': 'This is not a Box Generator design.',
 };
 // Una clave «texto|contexto» separa dos usos del mismo texto castellano con distinta traducción.
 function tr(lang, s, v) { const r = (lang === 'en' && EN[s]) || s.split('|')[0]; return v ? r.replace(/\{(\w+)\}/g, (m, k) => k in v ? v[k] : m) : r; }
@@ -1014,7 +1031,7 @@ const DESIGN_ENUMS = { mode: ['outer', 'inner'], lidType: ['skirt', 'hinge', 'no
   font: ['sans', 'round', 'serif', 'mono', 'script'] };
 function designOf(S) { const d = { app: 'cajas-a-medida', v: DESIGN_V }; for (const k of DESIGN_KEYS) if (S[k] !== undefined) d[k] = S[k]; return d; }
 function designApply(d, base) {
-  if (!d || typeof d !== 'object' || d.app !== 'cajas-a-medida' || !(d.v >= 1)) throw new Error('No es un diseño de Cajas a medida.');
+  if (!d || typeof d !== 'object' || d.app !== 'cajas-a-medida' || !(d.v >= 1)) throw new Error('No es un diseño de Box Generator.');
   const out = {};
   for (const k of DESIGN_KEYS) {
     const v = d[k], b = base[k];
@@ -1057,7 +1074,7 @@ function designParse(str) {
   // ---------- Idioma ----------
   // Textos de la interfaz en inglés; la clave es el texto castellano tal cual aparece en el HTML o en el código.
   Object.assign(EN, {
-    'Cajas a medida': 'Custom Boxes', 'Idioma': 'Language',
+    'Idioma': 'Language',
     'Pon las medidas, reparte los huecos y descarga el STL. Se imprime sin soportes.': 'Set the size, split it into compartments and download the STL. Prints without supports.',
     'Empieza por un modelo': 'Start from a model',
     'O ajusta tú las medidas. Lo último que hagas se recuerda en este navegador; para guardar varios, usa «Mis diseños».': 'Or set the sizes yourself. Your latest changes are remembered in this browser; to keep several, use “My designs”.',
@@ -1131,7 +1148,7 @@ function designParse(str) {
     'No se pudo copiar solo: está seleccionado abajo, cópialo con Ctrl+C o ⌘C.': 'Couldn’t copy automatically: it’s selected below, copy it with Ctrl+C or ⌘C.',
     'Eso no parece un enlace o código de diseño.': 'That doesn’t look like a design link or code.', 'Diseño abierto.': 'Design opened.',
     'Guardado {f}. Ábrelo con «Importar .json».': 'Saved {f}. Open it with “Import .json”.', 'Descargando {f}.': 'Downloading {f}.',
-    'Ese archivo no es un diseño de Cajas a medida.': 'That file is not a Custom Boxes design.',
+    'Ese archivo no es un diseño de Box Generator.': 'That file is not a Box Generator design.',
   });
   const LANG_KEY = 'cajas-a-medida:idioma';
   let lang = 'es';
@@ -1150,7 +1167,7 @@ function designParse(str) {
     const swap = v => { const k = v.trim(); return k ? v.replace(k, t(k)) : v; };
     for (const [n, v] of fixedText) n.nodeValue = swap(v);
     for (const [el, a, v] of fixedAttr) el.setAttribute(a, swap(v));
-    document.documentElement.lang = lang; document.title = t('Cajas a medida');
+    document.documentElement.lang = lang; document.title = 'Box Generator';
     for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
   }
   const fmt = (n, d) => n.toLocaleString(lang === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: d == null ? 1 : d });
@@ -1541,11 +1558,11 @@ function designParse(str) {
   function designJson() { const name = $('#saveName').value.trim(); return JSON.stringify(Object.assign(name ? { name } : {}, designOf(S)), null, 2); }
   function readSaves() { try { const a = JSON.parse(localStorage.getItem(SAVES_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => x && x.d && x.name) : []; } catch (e) { return []; } }
   function writeSaves(a) { try { localStorage.setItem(SAVES_KEY, JSON.stringify(a)); return true; } catch (e) { return false; } }
-  function say(m) { $('#status').textContent = m; }
+  function say(m) { $('#savesStatus').textContent = m; }
   function openDesign(d, msg) {
     let n; try { n = designApply(d, DEFAULTS); } catch (e) { say(t(e.message)); return; }
     Object.assign(S, n); if (lidOf() === 'none') S.show = 'box';
-    note = msg; writeInputs(); schedule(true);
+    $('#saves').open = false; note = msg; writeInputs(); schedule(true);
   }
   function defaultName() { return t('Caja {d}', { d: [S.W, S.D, S.H].map(v => fmt(v, 0)).join(' × ') }); }
   function renderSaves() {
@@ -1575,6 +1592,10 @@ function designParse(str) {
     if (!writeSaves(a.slice(0, 100))) { say(t('Este navegador no deja guardar aquí. Exporta el archivo para no perderlo.')); return; }
     $('#saveName').value = name; renderSaves(); say(t(i >= 0 ? 'Actualizado {f}.' : 'Guardado {f} en este navegador.', { f: q(name) }));
   });
+  // El panel se cierra al pulsar fuera o con Escape.
+  $('#saves').addEventListener('toggle', () => { if ($('#saves').open) say(''); });
+  document.addEventListener('click', e => { if ($('#saves').open && e.target.isConnected && !e.target.closest('#saves')) $('#saves').open = false; });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#saves').open) { $('#saves').open = false; $('#saves > summary').focus(); } });
   $('#saveName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveBtn').click(); });
   $('#copyCode').addEventListener('click', async () => {
     const code = designCode(designOf(S)), text = inFrame ? code : location.href.split('#')[0] + '#d=' + code;
@@ -1604,7 +1625,7 @@ function designParse(str) {
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
   $('#importFile').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
-    let d; try { d = JSON.parse(await f.text()); } catch (err) { say(t('Ese archivo no es un diseño de Cajas a medida.')); return; }
+    let d; try { d = JSON.parse(await f.text()); } catch (err) { say(t('Ese archivo no es un diseño de Box Generator.')); return; }
     $('#saveName').value = d && typeof d.name === 'string' ? d.name : f.name.replace(/\.json$/i, '');
     openDesign(d, t('Abierto {f}.', { f: f.name }));
   });
