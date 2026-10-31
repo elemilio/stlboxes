@@ -56,6 +56,7 @@ h2 { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.09em; te
 .f select { font-family: var(--sans); }
 .f textarea { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink); font: 500 1rem var(--sans); padding: 8px; outline: none; resize: vertical; min-height: 2.6em; }
 .chip.emo { padding: 3px 8px; font-size: 1rem; line-height: 1.3; }
+.f .slide { width: 100%; margin: 4px 0 0; accent-color: var(--accent); cursor: pointer; }
 .f i { font-style: normal; font: 400 0.75rem var(--mono); color: var(--muted); }
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--field); }
 .seg button { font: 500 0.88rem var(--sans); color: var(--ink); background: transparent; border: 0; padding: 8px 6px; cursor: pointer; border-left: 1px solid var(--line); }
@@ -203,9 +204,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
         <button type="button" data-seg="mode" data-v="inner" aria-pressed="false">Espacio por dentro</button>
       </div>
       <div class="row">
-        <label class="f">Largo<span class="in"><input id="W" data-k="W" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span></label>
-        <label class="f">Fondo<span class="in"><input id="D" data-k="D" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span></label>
-        <label class="f"><span id="Hlabel">Alto</span><span class="in"><input id="H" data-k="H" type="number" inputmode="decimal" step="1" min="5"><i>mm</i></span></label>
+        <label class="f">Largo<span class="in"><input id="W" data-k="W" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span><input type="range" class="slide" data-slide="W" min="10" max="350" step="1" tabindex="-1" aria-hidden="true"></label>
+        <label class="f">Fondo<span class="in"><input id="D" data-k="D" type="number" inputmode="decimal" step="1" min="10"><i>mm</i></span><input type="range" class="slide" data-slide="D" min="10" max="350" step="1" tabindex="-1" aria-hidden="true"></label>
+        <label class="f"><span id="Hlabel">Alto</span><span class="in"><input id="H" data-k="H" type="number" inputmode="decimal" step="1" min="5"><i>mm</i></span><input type="range" class="slide" data-slide="H" min="5" max="200" step="1" tabindex="-1" aria-hidden="true"></label>
       </div>
       <details>
         <summary>Paredes y esquinas</summary>
@@ -1123,6 +1124,7 @@ function designParse(str) {
     'Revisa {f}: están vacíos o tienen un valor imposible (marcado en rojo).': 'Check {f}: they’re empty or have impossible values (marked in red).',
     'Tu impresora': 'Your printer', 'Tamaño de la cama': 'Bed size', 'Boquilla': 'Nozzle', '0,4 mm': '0.4 mm', '0,6 mm': '0.6 mm', '0,8 mm': '0.8 mm',
     'Color de la vista previa': 'Preview color', 'Vista previa 3D de la caja': '3D preview of the box', 'Qué pieza ver': 'Which part to show',
+    'Separación de la tapa': 'Lid separation',
     'Caja': 'Box', 'Juntas': 'Together', 'Encuadrar': 'Fit view', 'Apertura': 'Opening', 'Apertura de la tapa en grados': 'Lid opening in degrees',
     'Arrastra para girar, rueda o pellizco para acercar. La cuadrícula son 10 mm.': 'Drag to rotate, scroll or pinch to zoom. The grid is 10 mm.',
     'Tu navegador no puede mostrar la vista 3D. El STL se descarga igual.': 'Your browser can’t show the 3D view. The STL still downloads.',
@@ -1197,7 +1199,7 @@ function designParse(str) {
     { name: 'Caja simple', v: { mode: 'outer', W: 100, D: 100, H: 50, cols: 1, rows: 1, colFr: '', rowFr: '', divT: 1.2, wall: 2, floor: 2, corner: 8, lidType: 'skirt', latch: 'none', useLid: true } },
     { name: 'Joyero con bisagra', v: { mode: 'outer', W: 90, D: 60, H: 30, cols: 2, rows: 1, colFr: '', rowFr: '', divT: 1.2, wall: 1.6, floor: 1.2, corner: 6, lidType: 'hinge', latch: 'magnet', useLid: true } },
   ];
-  const S = Object.assign({ tol: 0.25, plate: 2, skirt: 6, pin: 1.75, knuckles: 0, latch: 'none', snapB: 0.3, magD: 6, magH: 2, text: '', font: 'sans', labelSize: 12, labelMode: 'emboss', labelDepth: 0.6, open: 55, bed: 256, nozzle: 0.4, color: COLORS[0], show: 'box' }, PRESETS[0].v, { useCells: false, useText: false, usePrinter: false, useLid: false });
+  const S = Object.assign({ tol: 0.25, plate: 2, skirt: 6, pin: 1.75, knuckles: 0, latch: 'none', snapB: 0.3, magD: 6, magH: 2, text: '', font: 'sans', labelSize: 12, labelMode: 'emboss', labelDepth: 0.6, open: 55, lift: 60, bed: 256, nozzle: 0.4, color: COLORS[0], show: 'box' }, PRESETS[0].v, { useCells: false, useText: false, usePrinter: false, useLid: false });
   const DEFAULTS = Object.assign({}, S);
   try {
     const raw = localStorage.getItem('cajas-a-medida'), saved = raw ? JSON.parse(raw) : null;
@@ -1224,6 +1226,7 @@ function designParse(str) {
   // ---------- Entradas ----------
   function writeInputs() {
     for (const el of $$('[data-k]')) { const k = el.dataset.k; if (k in S) el.value = S[k]; }
+    for (const r of $$('[data-slide]')) r.value = S[r.dataset.slide];
     for (const el of $$('[data-use]')) { el.checked = !!S[el.dataset.use]; el.closest('.opt').classList.toggle('off', !el.checked); }
     for (const b of $$('[data-seg]')) b.setAttribute('aria-pressed', String(segValue(b.dataset.seg) === b.dataset.v));
     $$('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === S.color)));
@@ -1272,6 +1275,11 @@ function designParse(str) {
     else { const v = parseFloat(el.value); S[k] = isFinite(v) ? v : NaN; }
   }
   for (const el of $$('[data-k]')) el.addEventListener('input', () => { readInput(el); schedule(); });
+  // Los deslizadores de tamaño mueven el campo numérico de al lado; el campo admite valores fuera del recorrido.
+  for (const r of $$('[data-slide]')) r.addEventListener('input', () => {
+    const el = $('#' + r.dataset.slide); el.value = r.value; readInput(el); schedule();
+  });
+  for (const el of $$('[data-k]')) el.addEventListener('input', () => { const r = $('[data-slide="' + el.dataset.k + '"]'); if (r && isFinite(S[el.dataset.k])) r.value = S[el.dataset.k]; });
   for (const el of $$('[data-use]')) el.addEventListener('input', () => { S[el.dataset.use] = el.checked; writeInputs(); schedule(); });
   // La vista sigue a lo que editas: si cambias algo de la tapa o del texto y no se ve, enseña las dos piezas.
   function reveal(sec) {
@@ -1477,14 +1485,19 @@ function designParse(str) {
         if (show === 'both') { // tapa en su sitio, girando sobre el eje de la bisagra
           piv.position.set(0, G.yc, G.zc); lm.position.set(0, -G.yc, L.OH - G.zc); piv.rotation.x = -S.open * Math.PI / 180;
         } else if (show === 'lid') { lm.position.set(0, L.OD / 2 - (D.yMin + D.yMax) / 2, 0); }
-      } else if (show === 'both') { // tapa girada sobre la caja, separada para ver el encaje
+      } else if (show === 'both') { // tapa boca abajo sobre la caja: con S.lift = 0 cerrada (el plato apoya en el borde), al 100 % el borde queda 20 mm por encima
         lm.rotation.x = Math.PI;
-        lm.position.set(L.OW / 2 - D.LW / 2, L.OD / 2 + D.LD / 2, L.OH + 14 + D.LH);
+        const lift = S.lift / 100 * (D.LH - info.p.plate + 20);
+        lm.position.set(L.OW / 2 - D.LW / 2, L.OD / 2 + D.LD / 2, L.OH + info.p.plate + lift);
       } else if (show === 'lid') {
         lm.position.set(L.OW / 2 - D.LW / 2, L.OD / 2 - D.LD / 2, 0);
       }
     }
-    $('#openWrap').hidden = !(G && show === 'both');
+    // El mismo deslizador: grados con bisagra, porcentaje de separación con tapa encajada.
+    const op = $('#open');
+    $('#openWrap').hidden = !(D && show === 'both');
+    op.max = G ? 120 : 100; op.value = G ? S.open : S.lift;
+    op.setAttribute('aria-label', t(G ? 'Apertura de la tapa en grados' : 'Separación de la tapa'));
     makePlate();
   }
   function makePlate() {
@@ -1537,7 +1550,7 @@ function designParse(str) {
     canvas.addEventListener('wheel', e => { e.preventDefault(); orbit.dist = Math.max(20, Math.min(3000, orbit.dist * Math.exp(e.deltaY * 0.0012))); render(); }, { passive: false });
   }
   $('#fit').addEventListener('click', fit);
-  $('#open').addEventListener('input', e => { S.open = parseFloat(e.target.value) || 0; applyShow(); render(); persist(); });
+  $('#open').addEventListener('input', e => { S[info && info.G ? 'open' : 'lift'] = parseFloat(e.target.value) || 0; applyShow(); render(); persist(); });
   new MutationObserver(() => { makePlate(); render(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { makePlate(); render(); });
 
