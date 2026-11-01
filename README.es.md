@@ -54,6 +54,8 @@ y abre <http://localhost:8771>.
 
 Todo el código de geometría está entre `// ==CORE-START==` y `// ==CORE-END==` en `index.html`: funciones puras sin DOM, en milímetros y con Z hacia arriba. Cada pieza se genera como una sola malla cerrada (contornos redondeados, caras trianguladas con earcut y paredes extruidas). El texto se dibuja en un lienzo, se convierte en una máscara, se trazan sus contornos y se extruyen sobre la cara elegida.
 
+La página publicada cuenta las visitas y las descargas como dos totales anónimos en [Abacus](https://abacus.jasoncameron.dev) (sin cookies ni datos personales): [visitas](https://abacus.jasoncameron.dev/get/stlboxes/visitas), [descargas](https://abacus.jasoncameron.dev/get/stlboxes/descargas). Abierta como archivo local no cuenta nada.
+
 ## Pruebas
 
 Requieren Node 18 o posterior:

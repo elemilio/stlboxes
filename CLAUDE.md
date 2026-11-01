@@ -6,6 +6,7 @@ Generador de cajas organizadoras para impresión 3D. Un único `index.html` sin 
 Se publicó como artifact de claude.ai con la capacidad `downloads` (el visor solo deja guardar ciertas extensiones, por eso la descarga es un .zip con los STL).
 También está publicado en GitHub Pages (<https://elemilio.github.io/stlboxes/>, rama `main`, raíz): cada push a `main` lo actualiza en uno o dos minutos.
 Si se abre como archivo suelto, la descarga es directa de cada .stl.
+Contadores (`count`): solo en `elemilio.github.io`, totales anónimos `visitas` y `descargas` en Abacus (`abacus.jasoncameron.dev/get/stlboxes/<clave>`, sin cuenta).
 
 ## Estructura
 - Todo el bloque de geometría está entre `// ==CORE-START==` y `// ==CORE-END==` (sin DOM, en mm, Z hacia arriba). Los tests lo extraen de ahí.

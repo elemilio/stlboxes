@@ -54,6 +54,8 @@ and open <http://localhost:8771>.
 
 All the geometry code sits between `// ==CORE-START==` and `// ==CORE-END==` in `index.html`: pure functions with no DOM, in millimeters, with Z pointing up. Each part is generated as a single closed mesh (rounded outlines, faces triangulated with earcut and extruded walls). Text is drawn on a canvas, turned into a mask, its outlines are traced and extruded onto the chosen face.
 
+The published page counts visits and downloads as two anonymous totals in [Abacus](https://abacus.jasoncameron.dev) (no cookies and no personal data): [visits](https://abacus.jasoncameron.dev/get/stlboxes/visitas), [downloads](https://abacus.jasoncameron.dev/get/stlboxes/descargas). It counts nothing when opened as a local file.
+
 ## Tests
 
 They need Node 18 or later:

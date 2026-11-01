@@ -1554,10 +1554,19 @@ function designParse(str) {
   new MutationObserver(() => { makePlate(); render(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { makePlate(); render(); });
 
+  // ---------- Contadores ----------
+  // Solo en la web publicada: totales anónimos en Abacus, sin cookies (abacus.jasoncameron.dev/get/stlboxes/<clave>).
+  function count(key) {
+    if (location.hostname !== 'elemilio.github.io') return;
+    try { fetch('https://abacus.jasoncameron.dev/hit/stlboxes/' + key, { mode: 'cors', keepalive: true }).catch(() => {}); } catch (e) {}
+  }
+  count('visitas');
+
   // ---------- Descarga ----------
   function nameBase() { const L = info.L; return t('caja') + '_' + Math.round(L.OW) + 'x' + Math.round(L.OD) + 'x' + Math.round(L.OH); }
   async function download() {
     if (!info) return;
+    count('descargas');
     const base = nameBase(), files = [{ name: base + '.stl', data: soupToStl(boxSoup, base) }];
     if (lidSoup) files.push({ name: base + '_' + t('tapa') + '.stl', data: soupToStl(lidSoup, base + ' ' + t('tapa')) });
     const nStl = files.length;
