@@ -20,6 +20,9 @@ Si se abre como archivo suelto, la descarga es directa de cada .stl.
 - Idiomas (castellano e inglés): el texto castellano es la clave y `EN` guarda la traducción (`tr(lang, texto, {vars})`, `{x}` se sustituye; `texto|contexto` separa usos con distinta traducción). En el core están los mensajes de `validate` (según `p.lang`); la parte DOM añade a `EN` los de la interfaz, apunta los textos fijos del HTML al arrancar (`localizeFixed`) y rehace los que pone el código en `applyLang`. Al añadir un texto nuevo, añade su traducción: `test.mjs` comprueba que los mensajes en inglés no salgan en castellano.
 - `Soup.cap` triangula con earcut y parte las aristas que pasan por vértices alineados (si no, quedan uniones en T con las paredes).
 
+## Documentación
+README en inglés (`README.md`) y en castellano (`README.es.md`), enlazados entre sí: al cambiar funciones, actualiza los dos.
+
 ## Pruebas (Node 18+)
     cd tests && npm i earcut@2.2.4 && node test.mjs && node hinge-test.mjs
 `test.mjs` genera STL de varias configuraciones y comprueba volumen y que sean sólidos cerrados (con `check-stl.mjs`). Usa `unzip` para probar el zip.
